@@ -1,0 +1,9 @@
+{
+  "name": "com.charliemj.videodownloader",
+  "description": "Charlie MJ Video Downloader Native Messaging Host",
+  "path": "C:\\Program Files\\Charlie MJ Video Downloader\\native-host\\host.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_OFFICIAL_EXTENSION_ID/"
+  ]
+}
