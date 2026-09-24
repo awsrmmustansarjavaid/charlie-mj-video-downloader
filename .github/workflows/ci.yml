@@ -1,32 +1,226 @@
+# ==============================================================================
+# Charlie MJ Video Downloader - Continuous Integration (CI)
+# ==============================================================================
+#
+# Purpose:
+#   This workflow performs basic CI validation for the Charlie MJ Video
+#   Downloader application.
+#
+#   It validates two major parts of the application independently:
+#
+#   1. Frontend
+#      - Installs Node.js dependencies.
+#      - Builds the React/Vite frontend.
+#
+#   2. Rust / Tauri Backend
+#      - Installs the stable Rust toolchain.
+#      - Runs Cargo checks against the Tauri backend.
+#
+# This workflow does NOT create a Windows installer or release.
+# It is intended to catch frontend and Rust/Tauri build problems early.
+#
+# Project structure used by this workflow:
+#
+#   app/
+#   ├── src/                    # React frontend source
+#   ├── package.json            # Node.js project configuration
+#   └── src-tauri/              # Rust/Tauri desktop application
+#       ├── src/                # Rust source code
+#       ├── icons/              # Application icons
+#       ├── Cargo.toml          # Rust dependencies/configuration
+#       └── tauri.conf.json     # Tauri application configuration
+#
+# ==============================================================================
+
 name: CI
+
+# ==============================================================================
+# Workflow Triggers
+# ==============================================================================
+#
+# Run CI when:
+#
+#   - Code is pushed to the main branch.
+#   - A Pull Request is opened or updated.
+#
+# This ensures that changes going into the main branch are automatically
+# validated and that Pull Requests can be checked before merging.
+# ==============================================================================
 
 on:
   push:
     branches: ["main"]
+
   pull_request:
 
+
+# ==============================================================================
+# Jobs
+# ==============================================================================
+#
+# The workflow contains two independent jobs:
+#
+#   frontend - validates the React/Vite frontend.
+#   rust     - validates the Rust/Tauri backend.
+#
+# Both jobs run independently on GitHub-hosted Windows runners.
+# ==============================================================================
+
 jobs:
+
+  # ============================================================================
+  # Frontend CI Job
+  # ============================================================================
+  #
+  # Purpose:
+  #   Validate that the frontend dependencies can be installed and that the
+  #   React/Vite application can be successfully compiled for production.
+  #
+  # Technology:
+  #   - Windows
+  #   - Node.js 22
+  #   - npm
+  #   - React
+  #   - Vite
+  #
+  # ============================================================================
+
   frontend:
     runs-on: windows-latest
+
+    # All shell commands in this job are executed from the frontend directory.
     defaults:
       run:
         working-directory: app
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # ------------------------------------------------------------------------
+      # Checkout source code
+      # ------------------------------------------------------------------------
+      # Downloads the repository contents to the GitHub Actions runner so that
+      # subsequent steps can access the application source code.
+      # ------------------------------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------------------------------------
+      # Setup Node.js
+      # ------------------------------------------------------------------------
+      # Installs and configures Node.js 22, which is used to install frontend
+      # dependencies and build the React/Vite application.
+      #
+      # npm caching is intentionally not enabled here because this project
+      # currently does not contain an app/package-lock.json file.
+      #
+      # Once package-lock.json is committed, npm caching can be enabled and
+      # "npm install" can be changed to "npm ci" for more reproducible builds.
+      # ------------------------------------------------------------------------
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm install
-      - run: npm run build
+
+
+      # ------------------------------------------------------------------------
+      # Install frontend dependencies
+      # ------------------------------------------------------------------------
+      # Installs the dependencies defined in app/package.json.
+      #
+      # This includes the React, Vite, TypeScript, and Tauri frontend packages
+      # required by the application.
+      # ------------------------------------------------------------------------
+
+      - name: Install frontend dependencies
+        run: npm install
+
+
+      # ------------------------------------------------------------------------
+      # Build frontend application
+      # ------------------------------------------------------------------------
+      # Runs the project's production build command.
+      #
+      # The command defined in package.json is:
+      #
+      #   tsc -b && vite build
+      #
+      # This checks the TypeScript project and then generates the production
+      # frontend build.
+      # ------------------------------------------------------------------------
+
+      - name: Build frontend
+        run: npm run build
+
+
+  # ============================================================================
+  # Rust / Tauri CI Job
+  # ============================================================================
+  #
+  # Purpose:
+  #   Validate the Rust backend used by the Tauri desktop application.
+  #
+  # Technology:
+  #   - Windows
+  #   - Rust stable
+  #   - Cargo
+  #   - Tauri
+  #
+  # The Rust job currently runs "cargo check". This validates Rust code and
+  # dependencies without creating the final Windows installer.
+  #
+  # ============================================================================
 
   rust:
     runs-on: windows-latest
+
+    # All Cargo commands in this job are executed from the Tauri backend
+    # directory.
     defaults:
       run:
         working-directory: app/src-tauri
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check
+
+      # ------------------------------------------------------------------------
+      # Checkout source code
+      # ------------------------------------------------------------------------
+      # Downloads the repository so Cargo can access the Rust/Tauri source,
+      # Cargo.toml, Tauri configuration, capabilities, and application assets.
+      # ------------------------------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------------------------------------
+      # Setup Rust toolchain
+      # ------------------------------------------------------------------------
+      # Installs the current stable Rust toolchain required to compile and
+      # validate the Tauri backend.
+      # ------------------------------------------------------------------------
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+
+      # ------------------------------------------------------------------------
+      # Check Rust/Tauri backend
+      # ------------------------------------------------------------------------
+      # Runs Cargo's check command.
+      #
+      # "cargo check" verifies that:
+      #
+      #   - Rust source code compiles.
+      #   - Rust dependencies are compatible.
+      #   - Cargo.toml configuration is valid.
+      #   - Tauri build dependencies can be processed.
+      #
+      # This step does not produce the final Windows installer.
+      # ------------------------------------------------------------------------
+
+      - name: Check Rust
+        run: cargo check
+
