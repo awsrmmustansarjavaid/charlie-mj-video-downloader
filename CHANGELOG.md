@@ -32,3 +32,7 @@
 - The UI now displays download errors and the final saved file path.
 - Browser-captured downloads now use the same tracked job ID and update to completed/failed.
 - Preserved exact Google video playback URLs instead of stripping signed query parameters.
+
+### v5.1 build fix
+- Fixed Rust `E0382` compile error by cloning the download job ID before moving it into the background Tokio task.
+- The command now returns the original job ID while the background task owns its clone.

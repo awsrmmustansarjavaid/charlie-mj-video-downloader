@@ -48,3 +48,7 @@ This release fixes the two user-visible problems found during Windows testing:
 2. Normal yt-dlp downloads no longer remain permanently at `queued / 0% / unknown`. The Rust backend now records the real background result, reports failures in the UI, saves normal downloads in the Windows Downloads folder, and points yt-dlp at the bundled FFmpeg directory.
 3. Browser-captured jobs also use the tracked job ID and finish as `completed` or `failed` instead of remaining queued.
 4. Google video playback URLs are preserved exactly as issued by the browser so signed authorization parameters are not removed.
+
+### v5.1 build fix
+- Fixed Rust `E0382` compile error by cloning the download job ID before moving it into the background Tokio task.
+- The command now returns the original job ID while the background task owns its clone.

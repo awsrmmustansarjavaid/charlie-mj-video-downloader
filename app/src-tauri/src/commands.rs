@@ -110,7 +110,7 @@ pub async fn start_download(
     let download_url = url.clone();
     tokio::spawn(async move {
         let state = app.state::<AppState>();
-        set_job_status(state.inner(), &job_id, "downloading", 0.0, None, None);
+        set_job_status(state.inner(), &background_job_id, "downloading", 0.0, None, None);
 
         let result = media::download(
             &download_url,
@@ -271,7 +271,9 @@ pub async fn start_captured_download(
     // Start Background Download Task
     // --------------------------------------------------------
     // The actual download and FFmpeg processing runs in a
-    // background Tokio task.
+    // background Tokio task. Clone the ID because the task owns its
+    // captured values while the command must still return the ID below.
+    let background_job_id = job_id.clone();
     tokio::spawn(async move {
         let state = app.state::<AppState>();
 
@@ -285,7 +287,7 @@ pub async fn start_captured_download(
         // ----------------------------------------------------
         // Execute Download + Mux + Verification Pipeline
         // ----------------------------------------------------
-        set_job_status(state.inner(), &job_id, "downloading", 0.0, None, None);
+        set_job_status(state.inner(), &background_job_id, "downloading", 0.0, None, None);
         let result = async {
 
             // Download the selected video stream.
@@ -357,7 +359,7 @@ pub async fn start_captured_download(
             let _ = tokio::fs::remove_dir_all(&temp).await;
             set_job_status(
                 state.inner(),
-                &job_id,
+                &background_job_id,
                 "failed",
                 0.0,
                 None,
@@ -366,7 +368,7 @@ pub async fn start_captured_download(
         } else {
             set_job_status(
                 state.inner(),
-                &job_id,
+                &background_job_id,
                 "completed",
                 100.0,
                 Some(final_path.to_string_lossy().to_string()),
