@@ -4,39 +4,70 @@
 # Purpose:
 # - Build the complete Tauri Windows application
 # - Generate the Windows installer (.exe)
-# - Upload the installer to GitHub Actions artifacts
+# - Optionally generate the MSI installer
+# - Upload installers to GitHub Actions artifacts
 #
-# How to run:
+# This workflow can run in three ways:
 #
-# 1. Manually:
+# 1. MANUAL
 #    GitHub → Actions → Windows Release → Run workflow
 #
-# 2. Automatically:
-#    Push a Git tag such as:
-#    v0.2.0
+# 2. AUTOMATIC AFTER CI
+#    Push to main
+#        ↓
+#    CI succeeds
+#        ↓
+#    Windows Release starts automatically
 #
-# Example:
+# 3. VERSION TAG
+#    Example:
+#
 #    git tag v0.2.0
 #    git push origin v0.2.0
 #
-# The generated installer will be available under:
+#    The release workflow starts automatically.
 #
-# GitHub → Actions → Windows Release → Run → Artifacts
+# Output:
+#
+# app/src-tauri/target/release/bundle/nsis/*.exe
+#
+# The installer is uploaded as a GitHub Actions artifact.
 # ============================================================
 
 name: Windows Release
 
+
+# ============================================================
+# Workflow Triggers
+# ============================================================
+
 on:
 
+
   # ----------------------------------------------------------
-  # Allow manual execution from GitHub Actions
+  # Manual workflow trigger
+  # ----------------------------------------------------------
+  # Allows you to start the Windows build from:
+  #
+  # GitHub
+  #   → Actions
+  #   → Windows Release
+  #   → Run workflow
+  #
+  # This is useful when you want to create an installer without
+  # pushing a new commit or tag.
   # ----------------------------------------------------------
   workflow_dispatch:
 
+
   # ----------------------------------------------------------
-  # Automatically build when a version tag is pushed
+  # Version tag trigger
+  # ----------------------------------------------------------
+  # Automatically starts the release when a version tag is
+  # pushed.
   #
-  # Example:
+  # Examples:
+  #
   # v0.2.0
   # v0.2.1
   # v1.0.0
@@ -46,7 +77,46 @@ on:
       - "v*"
 
 
+  # ----------------------------------------------------------
+  # Automatic trigger after CI
+  # ----------------------------------------------------------
+  # GitHub starts this workflow after another workflow finishes.
+  #
+  # The job below checks:
+  #
+  # - The completed workflow was "CI"
+  # - CI completed successfully
+  # - CI was running against the main branch
+  #
+  # This means a normal successful push to main can automatically
+  # produce a Windows installer.
+  # ----------------------------------------------------------
+  workflow_run:
+    workflows:
+      - "CI"
+    types:
+      - completed
+    branches:
+      - "main"
+
+
+# ============================================================
+# Permissions
+# ============================================================
+# These permissions are sufficient for checking out the
+# repository and uploading workflow artifacts.
+# ============================================================
+
+permissions:
+  contents: read
+
+
+# ============================================================
+# Jobs
+# ============================================================
+
 jobs:
+
 
   # ==========================================================
   # Windows Build
@@ -55,17 +125,48 @@ jobs:
     name: Build Windows Installer
     runs-on: windows-latest
 
+
+    # ----------------------------------------------------------
+    # IMPORTANT
+    # ----------------------------------------------------------
+    # workflow_run also fires when CI fails.
+    #
+    # Therefore, this condition ensures that the Windows build
+    # only runs when the CI workflow completed successfully.
+    #
+    # It also prevents pull-request CI runs from automatically
+    # producing a Windows installer.
+    # ----------------------------------------------------------
+    if: >
+      github.event_name != 'workflow_run' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+
+
     steps:
 
+
       # --------------------------------------------------------
-      # Checkout source code
+      # Checkout repository
+      # --------------------------------------------------------
+      # Downloads the source code that will be compiled.
+      #
+      # For workflow_run events, use the exact commit that CI
+      # validated rather than relying on the current branch tip.
       # --------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 
       # --------------------------------------------------------
       # Setup Node.js
+      # --------------------------------------------------------
+      # Node.js is required to install the React/Vite frontend
+      # dependencies and run the Tauri CLI through npm.
       # --------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,9 +178,11 @@ jobs:
 
       # --------------------------------------------------------
       # Install frontend dependencies
+      # --------------------------------------------------------
+      # Uses the exact dependency versions from package-lock.json.
       #
-      # npm ci is preferred for CI because it uses the exact
-      # versions stored in package-lock.json.
+      # This is important because npm ci provides reproducible
+      # CI/release installations.
       # --------------------------------------------------------
       - name: Install frontend dependencies
         working-directory: app
@@ -87,19 +190,35 @@ jobs:
 
 
       # --------------------------------------------------------
-      # Install Rust
+      # Setup Rust
+      # --------------------------------------------------------
+      # Installs the stable Rust toolchain on the GitHub runner.
       #
-      # Tauri requires Rust to compile the native Windows app.
+      # No Rust installation is required on your local PC.
       # --------------------------------------------------------
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
 
       # --------------------------------------------------------
-      # Build the Tauri Windows application
+      # Build Windows Tauri application
+      # --------------------------------------------------------
+      # Runs the Tauri production build.
       #
-      # npm run tauri build should call the Tauri CLI and create
-      # the production Windows application and installer.
+      # This compiles:
+      #
+      # React frontend
+      #       ↓
+      # Tauri
+      #       ↓
+      # Rust backend
+      #       ↓
+      # Windows application
+      #       ↓
+      # NSIS installer
+      #
+      # The exact installer output depends on the Tauri
+      # configuration.
       # --------------------------------------------------------
       - name: Build Windows installer
         working-directory: app
@@ -107,10 +226,12 @@ jobs:
 
 
       # --------------------------------------------------------
-      # Show generated files
+      # Display generated files
+      # --------------------------------------------------------
+      # Lists everything generated under the Tauri release
+      # directory.
       #
-      # This makes troubleshooting much easier if the .exe
-      # path changes or the bundler creates another package.
+      # This is useful for troubleshooting installer locations.
       # --------------------------------------------------------
       - name: Show generated Tauri files
         shell: pwsh
@@ -118,23 +239,35 @@ jobs:
           Write-Host "Checking Tauri release directory..."
 
           if (Test-Path "app/src-tauri/target/release") {
+
             Get-ChildItem `
               -Path "app/src-tauri/target/release" `
               -Recurse `
               -File |
               Select-Object FullName
+
           }
           else {
+
             Write-Error "Tauri release directory was not created."
+
           }
 
 
       # --------------------------------------------------------
-      # Upload Windows EXE installer
+      # Upload NSIS Windows installer
+      # --------------------------------------------------------
+      # Tauri normally places the NSIS installer under:
       #
-      # Tauri NSIS normally creates the Windows installer here:
+      # app/src-tauri/target/release/bundle/nsis/
       #
-      # app/src-tauri/target/release/bundle/nsis/*.exe
+      # The uploaded artifact can be downloaded from:
+      #
+      # GitHub
+      #   → Actions
+      #   → Windows Release
+      #   → Successful run
+      #   → Artifacts
       # --------------------------------------------------------
       - name: Upload Windows EXE installer
         uses: actions/upload-artifact@v4
@@ -145,10 +278,12 @@ jobs:
 
 
       # --------------------------------------------------------
-      # Upload MSI installer if Tauri generates one
+      # Upload MSI installer
+      # --------------------------------------------------------
+      # MSI packaging may not be enabled in every Tauri
+      # configuration.
       #
-      # This is optional but useful if your Tauri configuration
-      # enables MSI packaging.
+      # Therefore, missing MSI files do not fail the workflow.
       # --------------------------------------------------------
       - name: Upload Windows MSI installer
         uses: actions/upload-artifact@v4

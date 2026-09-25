@@ -3,34 +3,77 @@
 # ============================================================
 # Purpose:
 # - Validate the frontend
-# - Check the Rust/Tauri backend
-# - Run automatically on pushes to main and pull requests
+# - Validate the Rust/Tauri backend
+# - Run automatically on pushes to main
+# - Run automatically for pull requests
 #
 # IMPORTANT:
-# This workflow does NOT create a Windows installer.
-# The Windows installer is created by windows-release.yml.
+# This workflow ONLY validates the project.
+#
+# It does NOT create the Windows installer.
+#
+# The Windows installer is created by:
+#     windows-release.yml
+#
+# Workflow:
+#
+# Developer
+#     ↓
+# Git Push / Pull Request
+#     ↓
+# CI
+# ├── Frontend Build
+# └── Rust Check
+#     ↓
+# If successful
+#     ↓
+# Windows Release
+#     ↓
+# Tauri Build
+#     ↓
+# Windows .exe installer
 # ============================================================
 
 name: CI
 
-on:
-  # Run CI whenever code is pushed to main
-  push:
-    branches: ["main"]
 
-  # Run CI for pull requests targeting the repository
+# ============================================================
+# Workflow Triggers
+# ============================================================
+
+on:
+
+  # ----------------------------------------------------------
+  # Run CI when code is pushed to the main branch.
+  # ----------------------------------------------------------
+  push:
+    branches:
+      - "main"
+
+  # ----------------------------------------------------------
+  # Run CI for pull requests.
+  #
+  # This helps detect frontend or Rust problems before code
+  # is merged into main.
+  # ----------------------------------------------------------
   pull_request:
+
+
+# ============================================================
+# Jobs
+# ============================================================
 
 jobs:
 
+
   # ==========================================================
-  # Frontend CI
+  # Frontend Build
   # ==========================================================
   frontend:
     name: Frontend Build
     runs-on: windows-latest
 
-    # All commands in this job run from the app directory
+    # All shell commands in this job run from the app directory.
     defaults:
       run:
         working-directory: app
@@ -40,11 +83,19 @@ jobs:
       # --------------------------------------------------------
       # Checkout repository
       # --------------------------------------------------------
+      # Downloads the repository source code to the GitHub
+      # Actions runner.
+      # --------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       # --------------------------------------------------------
-      # Install Node.js
+      # Setup Node.js
+      # --------------------------------------------------------
+      # Installs Node.js 22 for the React/Vite frontend.
+      #
+      # npm cache is enabled to speed up dependency installation.
       # --------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,27 +104,37 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
+
       # --------------------------------------------------------
       # Install frontend dependencies
+      # --------------------------------------------------------
+      # npm ci performs a clean installation using the exact
+      # dependency versions recorded in package-lock.json.
       # --------------------------------------------------------
       - name: Install dependencies
         run: npm ci
 
+
       # --------------------------------------------------------
-      # Build frontend application
+      # Build frontend
+      # --------------------------------------------------------
+      # Compiles the React/Vite application.
+      #
+      # This confirms that the frontend can be built successfully
+      # before the Windows release process starts.
       # --------------------------------------------------------
       - name: Build frontend
         run: npm run build
 
 
   # ==========================================================
-  # Rust / Tauri Backend CI
+  # Rust / Tauri Backend Check
   # ==========================================================
   rust:
     name: Rust Check
     runs-on: windows-latest
 
-    # All commands in this job run from the Tauri directory
+    # All Cargo commands in this job run from the Tauri project.
     defaults:
       run:
         working-directory: app/src-tauri
@@ -86,17 +147,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       # --------------------------------------------------------
-      # Install stable Rust toolchain
+      # Setup Rust
+      # --------------------------------------------------------
+      # Installs the stable Rust toolchain on the GitHub runner.
+      #
+      # Rust/Cargo does NOT need to be installed on your local PC
+      # for this workflow to work.
       # --------------------------------------------------------
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+
       # --------------------------------------------------------
       # Check Rust code
+      # --------------------------------------------------------
+      # cargo check validates the Rust/Tauri backend and its
+      # dependencies.
       #
-      # cargo check validates the Rust project but does NOT
-      # generate the final Windows .exe installer.
+      # IMPORTANT:
+      # cargo check does NOT create the Windows .exe installer.
       # --------------------------------------------------------
       - name: Check Rust code
         run: cargo check
