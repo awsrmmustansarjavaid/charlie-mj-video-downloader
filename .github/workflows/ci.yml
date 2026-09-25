@@ -1,32 +1,102 @@
+# ============================================================
+# Charlie MJ Video Downloader - Continuous Integration
+# ============================================================
+# Purpose:
+# - Validate the frontend
+# - Check the Rust/Tauri backend
+# - Run automatically on pushes to main and pull requests
+#
+# IMPORTANT:
+# This workflow does NOT create a Windows installer.
+# The Windows installer is created by windows-release.yml.
+# ============================================================
+
 name: CI
 
 on:
+  # Run CI whenever code is pushed to main
   push:
     branches: ["main"]
+
+  # Run CI for pull requests targeting the repository
   pull_request:
 
 jobs:
+
+  # ==========================================================
+  # Frontend CI
+  # ==========================================================
   frontend:
+    name: Frontend Build
     runs-on: windows-latest
+
+    # All commands in this job run from the app directory
     defaults:
       run:
         working-directory: app
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # Install Node.js
+      # --------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - run: npm install
-      - run: npm run build
 
+      # --------------------------------------------------------
+      # Install frontend dependencies
+      # --------------------------------------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # --------------------------------------------------------
+      # Build frontend application
+      # --------------------------------------------------------
+      - name: Build frontend
+        run: npm run build
+
+
+  # ==========================================================
+  # Rust / Tauri Backend CI
+  # ==========================================================
   rust:
+    name: Rust Check
     runs-on: windows-latest
+
+    # All commands in this job run from the Tauri directory
     defaults:
       run:
         working-directory: app/src-tauri
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check
+
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # Install stable Rust toolchain
+      # --------------------------------------------------------
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # --------------------------------------------------------
+      # Check Rust code
+      #
+      # cargo check validates the Rust project but does NOT
+      # generate the final Windows .exe installer.
+      # --------------------------------------------------------
+      - name: Check Rust code
+        run: cargo check

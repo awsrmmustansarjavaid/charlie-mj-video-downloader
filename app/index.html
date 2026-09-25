@@ -1,13 +1,102 @@
 <!doctype html>
+<!--
+  ============================================================
+  Charlie MJ Video Downloader - Main HTML Entry Point
+  ============================================================
+
+  Purpose:
+  - Provides the main HTML document for the desktop application.
+  - Defines basic page metadata.
+  - Provides the root element where the React application
+    will be rendered.
+  - Loads the main TypeScript/React entry point.
+
+  Application flow:
+
+  index.html
+       ↓
+  <div id="root">
+       ↓
+  src/main.tsx
+       ↓
+  React Application
+  ============================================================
+-->
+
 <html lang="en">
+
 <head>
+  <!-- --------------------------------------------------------
+       Character Encoding
+       --------------------------------------------------------
+       UTF-8 supports standard English characters as well as
+       international characters and symbols.
+  --------------------------------------------------------- -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+
+  <!-- --------------------------------------------------------
+       Responsive Viewport
+       --------------------------------------------------------
+       Makes the application display correctly on different
+       screen sizes and resolutions.
+  --------------------------------------------------------- -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+
+  <!-- --------------------------------------------------------
+       Browser/Application Theme Color
+       --------------------------------------------------------
+       Defines the preferred dark theme color for supported
+       browsers and application UI elements.
+
+       #0b0d10 is the main dark background/theme color used
+       by the Charlie MJ application.
+  --------------------------------------------------------- -->
   <meta name="theme-color" content="#0b0d10" />
+
+
+  <!-- --------------------------------------------------------
+       Application Title
+       --------------------------------------------------------
+       Defines the document/application title.
+  --------------------------------------------------------- -->
   <title>Charlie MJ Video Downloader</title>
 </head>
+
+
 <body>
+
+  <!-- --------------------------------------------------------
+       React Root Element
+       --------------------------------------------------------
+       React mounts the entire frontend application inside
+       this element.
+
+       src/main.tsx is responsible for rendering the React
+       application into this root element.
+  --------------------------------------------------------- -->
   <div id="root"></div>
+
+
+  <!-- --------------------------------------------------------
+       React/TypeScript Application Entry Point
+       --------------------------------------------------------
+       type="module":
+         Loads the JavaScript/TypeScript module using the
+         modern ES module system.
+
+       /src/main.tsx:
+         Main frontend entry file for the application.
+
+       The Vite build system processes this file and its
+       imported React components during development/build.
+  --------------------------------------------------------- -->
   <script type="module" src="/src/main.tsx"></script>
+
 </body>
+
 </html>
