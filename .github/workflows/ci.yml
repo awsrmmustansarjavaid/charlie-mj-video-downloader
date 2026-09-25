@@ -2,7 +2,7 @@
 # Charlie MJ Video Downloader - Continuous Integration
 # ============================================================
 # Purpose:
-# - Validate the frontend
+# - Validate the React/Vite frontend
 # - Validate the Rust/Tauri backend
 # - Run automatically on pushes to main
 # - Run automatically for pull requests
@@ -13,9 +13,10 @@
 # It does NOT create the Windows installer.
 #
 # The Windows installer is created by:
-#     windows-release.yml
 #
-# Workflow:
+#     .github/workflows/windows-release.yml
+#
+# CI Pipeline:
 #
 # Developer
 #     ↓
@@ -23,16 +24,25 @@
 #     ↓
 # CI
 # ├── Frontend Build
+# │   ├── Node.js 22
+# │   ├── npm ci
+# │   └── npm run build
+# │
 # └── Rust Check
-#     ↓
-# If successful
-#     ↓
-# Windows Release
-#     ↓
-# Tauri Build
-#     ↓
-# Windows .exe installer
+#     ├── Stable Rust
+#     └── cargo check
+#
+# If CI succeeds on main:
+#
+#     CI SUCCESS
+#          ↓
+#     Windows Release
+#          ↓
+#     Tauri Build
+#          ↓
+#     Windows Installer (.exe)
 # ============================================================
+
 
 name: CI
 
@@ -44,17 +54,17 @@ name: CI
 on:
 
   # ----------------------------------------------------------
-  # Run CI when code is pushed to the main branch.
+  # Run CI whenever code is pushed to the main branch.
   # ----------------------------------------------------------
   push:
     branches:
       - "main"
 
   # ----------------------------------------------------------
-  # Run CI for pull requests.
+  # Run CI whenever a pull request targets the repository.
   #
-  # This helps detect frontend or Rust problems before code
-  # is merged into main.
+  # This helps detect frontend or Rust problems before the
+  # changes are merged into main.
   # ----------------------------------------------------------
   pull_request:
 
@@ -69,6 +79,21 @@ jobs:
   # ==========================================================
   # Frontend Build
   # ==========================================================
+  #
+  # This job:
+  #
+  # 1. Checks out the repository
+  # 2. Installs Node.js 22
+  # 3. Verifies package-lock.json exists
+  # 4. Runs npm ci
+  # 5. Builds the React/Vite application
+  #
+  # npm ci is intentionally used instead of npm install.
+  #
+  # npm ci provides a clean, reproducible installation based
+  # on the committed package-lock.json.
+  # ==========================================================
+
   frontend:
     name: Frontend Build
     runs-on: windows-latest
@@ -80,12 +105,15 @@ jobs:
 
     steps:
 
+
       # --------------------------------------------------------
       # Checkout repository
       # --------------------------------------------------------
-      # Downloads the repository source code to the GitHub
-      # Actions runner.
+      #
+      # Downloads the current repository source code to the
+      # GitHub Actions Windows runner.
       # --------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -93,10 +121,18 @@ jobs:
       # --------------------------------------------------------
       # Setup Node.js
       # --------------------------------------------------------
-      # Installs Node.js 22 for the React/Vite frontend.
       #
-      # npm cache is enabled to speed up dependency installation.
+      # Installs Node.js 22 for:
+      #
+      # - React
+      # - Vite
+      # - Tauri CLI
+      # - npm
+      #
+      # The npm cache is enabled to make future workflow runs
+      # faster.
       # --------------------------------------------------------
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -106,23 +142,69 @@ jobs:
 
 
       # --------------------------------------------------------
+      # Verify package-lock.json
+      # --------------------------------------------------------
+      #
+      # npm ci requires a valid package-lock.json.
+      #
+      # The lockfile must be committed to the repository together
+      # with package.json.
+      #
+      # If this step fails, do not continue to the installation.
+      # --------------------------------------------------------
+
+      - name: Verify package-lock.json
+        shell: pwsh
+        run: |
+          Write-Host "Checking frontend package files..."
+
+          if (-not (Test-Path "package.json")) {
+            Write-Error "app/package.json was not found."
+            exit 1
+          }
+
+          if (-not (Test-Path "package-lock.json")) {
+            Write-Error "app/package-lock.json was not found."
+            Write-Error "npm ci requires a committed package-lock.json file."
+            exit 1
+          }
+
+          Write-Host "package.json found."
+          Write-Host "package-lock.json found."
+
+
+      # --------------------------------------------------------
       # Install frontend dependencies
       # --------------------------------------------------------
+      #
       # npm ci performs a clean installation using the exact
-      # dependency versions recorded in package-lock.json.
+      # dependency tree recorded in package-lock.json.
+      #
+      # IMPORTANT:
+      #
+      # package.json and package-lock.json MUST be synchronized.
+      #
+      # If they are different, npm ci will intentionally fail.
+      # This protects the CI build from unexpected dependencies.
       # --------------------------------------------------------
-      - name: Install dependencies
+
+      - name: Install frontend dependencies
         run: npm ci
 
 
       # --------------------------------------------------------
-      # Build frontend
+      # Build frontend application
       # --------------------------------------------------------
-      # Compiles the React/Vite application.
       #
-      # This confirms that the frontend can be built successfully
-      # before the Windows release process starts.
+      # Runs:
+      #
+      #     tsc -b
+      #     vite build
+      #
+      # This verifies that the React/TypeScript/Vite frontend
+      # can successfully compile for production.
       # --------------------------------------------------------
+
       - name: Build frontend
         run: npm run build
 
@@ -130,6 +212,17 @@ jobs:
   # ==========================================================
   # Rust / Tauri Backend Check
   # ==========================================================
+  #
+  # This job:
+  #
+  # 1. Checks out the repository
+  # 2. Installs stable Rust
+  # 3. Runs cargo check
+  #
+  # This validates the Tauri/Rust backend without producing
+  # the final Windows installer.
+  # ==========================================================
+
   rust:
     name: Rust Check
     runs-on: windows-latest
@@ -141,9 +234,15 @@ jobs:
 
     steps:
 
+
       # --------------------------------------------------------
       # Checkout repository
       # --------------------------------------------------------
+      #
+      # Downloads the repository source code to the GitHub
+      # Actions Windows runner.
+      # --------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -151,23 +250,62 @@ jobs:
       # --------------------------------------------------------
       # Setup Rust
       # --------------------------------------------------------
-      # Installs the stable Rust toolchain on the GitHub runner.
       #
-      # Rust/Cargo does NOT need to be installed on your local PC
-      # for this workflow to work.
+      # Installs the stable Rust toolchain on GitHub Actions.
+      #
+      # You do NOT need to install Rust or Cargo on your local PC
+      # for this GitHub Actions workflow.
       # --------------------------------------------------------
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
 
       # --------------------------------------------------------
-      # Check Rust code
+      # Check Rust/Tauri backend
       # --------------------------------------------------------
-      # cargo check validates the Rust/Tauri backend and its
-      # dependencies.
+      #
+      # cargo check:
+      #
+      # - Parses the Rust project
+      # - Resolves dependencies
+      # - Compiles the Rust code for checking
+      # - Detects Rust compilation errors
       #
       # IMPORTANT:
+      #
       # cargo check does NOT create the Windows .exe installer.
+      #
+      # The actual installer is created by the separate
+      # Windows Release workflow.
       # --------------------------------------------------------
+
       - name: Check Rust code
         run: cargo check
+
+
+# ============================================================
+# END OF CI WORKFLOW
+# ============================================================
+#
+# Successful main-branch flow:
+#
+# Push to main
+#     ↓
+# CI
+# ├── Frontend Build       ✅
+# └── Rust Check           ✅
+#     ↓
+# CI SUCCESS
+#     ↓
+# Windows Release
+#     ↓
+# npm run tauri build
+#     ↓
+# Tauri Windows Build
+#     ↓
+# NSIS Installer (.exe)
+#     ↓
+# GitHub Actions Artifact
+#
+# ============================================================
