@@ -1,71 +1,83 @@
 # ============================================================
 # Charlie MJ Video Downloader - Rust/Tauri Package
 # ============================================================
-# This Cargo manifest defines the Rust backend package for the
-# Charlie MJ Video Downloader desktop application.
+# This Cargo manifest defines the Rust backend package used by
+# the Charlie MJ Video Downloader desktop application.
 #
 # Application architecture:
 #
-# React + TypeScript frontend
-#          ↓
-#        Tauri
-#          ↓
-#    Rust application
-#          ↓
-# ┌────────┼─────────────────────────────┐
-# │        │                             │
-# SQLite  Downloader                  FFmpeg
-# │        │                             │
-# └────────┴──────────────┬──────────────┘
-#                         ↓
-#                Windows Desktop App
+#   React + TypeScript frontend
+#             ↓
+#           Tauri
+#             ↓
+#       Rust backend
+#             ↓
+#   ┌─────────┼─────────────────────┐
+#   │         │                     │
+# SQLite   Downloader             FFmpeg
+#   │         │                     │
+#   └─────────┴──────────┬──────────┘
+#                        ↓
+#               Windows Desktop App
 #
-# Cargo uses this file to:
-# - Identify the Rust package
-# - Define the Rust library crate
-# - Configure Tauri build support
-# - Configure Tauri runtime dependencies
-# - Configure application libraries
+# This file controls:
+# - The Rust package metadata
+# - The Rust library crate
+# - Tauri build support
+# - Tauri runtime dependencies
+# - Tauri official plugins
+# - Application networking
+# - SQLite database support
+# - Asynchronous processing
+# - Serialization
 #
 # IMPORTANT:
 # This is a normal Cargo package manifest.
 # It is NOT a virtual workspace manifest.
 #
 # Therefore, [package] is required and no [workspace] section
-# is defined in this file.
+# is defined here.
 #
-# Tauri version compatibility:
+# ============================================================
+# TAURI VERSION NOTE
+# ============================================================
 #
-# The frontend uses:
+# The frontend uses the Tauri 2.x npm packages:
+#
 #   @tauri-apps/api = 2.11.5
 #   @tauri-apps/cli = 2.11.5
 #
-# The Rust Tauri framework and official plugins are therefore
-# aligned to the same 2.11.x release family.
+# Tauri's npm packages and Rust crates are related, but their
+# individual patch versions do NOT have to be identical.
 #
-# Keeping the frontend and Rust Tauri versions aligned prevents
-# the Tauri CLI from stopping the production build because of
-# mismatched major/minor versions.
+# In particular, do NOT assume that:
+#
+#   @tauri-apps/api 2.11.5
+#
+# means every Rust crate must also have:
+#
+#   2.11.5
+#
+# Cargo can only use versions that are actually published for
+# each Rust crate.
+#
+# The official Tauri Rust framework is kept on the Tauri 2.x
+# release family, while the official plugins use versions that
+# are actually available as Rust crates.
+#
 # ============================================================
 
 
 # ============================================================
 # Package Configuration
 # ============================================================
-# The [package] section identifies this Cargo package.
-#
-# Cargo treats this as an actual Rust package/crate rather than
-# a virtual workspace.
 
 [package]
-
 
 # ------------------------------------------------------------
 # Package Name
 # ------------------------------------------------------------
 # Name of the Rust package.
-#
-# This name identifies the backend package within Cargo.
 name = "charlie-mj-video-downloader"
 
 
@@ -74,8 +86,7 @@ name = "charlie-mj-video-downloader"
 # ------------------------------------------------------------
 # Current application version.
 #
-# This should remain synchronized with the application release
-# version used by the desktop application and release process.
+# Keep this synchronized with the application release version.
 version = "0.2.0"
 
 
@@ -98,67 +109,57 @@ authors = ["Charlie MJ contributors"]
 # ------------------------------------------------------------
 # Rust 2021 edition.
 #
-# The edition controls Rust language conventions and compiler
-# behavior used by this package.
+# This controls the Rust language edition and related compiler
+# behavior used by the project.
 edition = "2021"
 
 
 # ============================================================
 # Library Configuration
 # ============================================================
-# Tauri uses the library crate for the application's main Rust
-# application logic.
+# Tauri uses this library crate for the application's primary
+# Rust backend logic.
 #
-# The executable entry point is:
+# Application entry point:
 #
 #   app/src-tauri/src/main.rs
 #
-# The main Tauri application setup is implemented through:
+# Main Tauri application setup:
 #
 #   app/src-tauri/src/lib.rs
-#
-# The library name uses underscores because Rust crate names
-# used in source code follow Rust's identifier conventions.
 
 [lib]
-
 
 # ------------------------------------------------------------
 # Library Name
 # ------------------------------------------------------------
 # Rust library crate name.
 #
-# The package itself uses the hyphenated Cargo package name,
-# while the library uses an underscore-based Rust identifier.
+# The Cargo package uses hyphens, while the Rust library crate
+# uses underscores so it can be referenced as a Rust identifier.
 name = "charlie_mj_video_downloader_lib"
 
 
 # ------------------------------------------------------------
 # Library Output Types
 # ------------------------------------------------------------
-# Output formats required by the Tauri application.
+# Output formats used by the Rust/Tauri build.
 #
 # staticlib:
-#   Produces a static library.
+#   Static library output.
 #
 # cdylib:
-#   Produces a C-compatible dynamic library.
+#   C-compatible dynamic library output.
 #
 # rlib:
-#   Produces the standard Rust library format.
-#
-# These formats support the Tauri build and Rust compilation
-# process.
+#   Standard Rust library output.
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 
 # ============================================================
 # Build Dependencies
 # ============================================================
-# Dependencies required while Cargo builds the application.
-#
-# Build dependencies are compiled for the build process and
-# are separate from normal runtime dependencies.
+# Dependencies used during the Cargo build process.
 
 [build-dependencies]
 
@@ -166,30 +167,24 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # ------------------------------------------------------------
 # Tauri Build Support
 # ------------------------------------------------------------
-# Tauri build-time integration.
+# Provides Tauri build-time integration.
 #
-# This works with:
-#
-#   app/src-tauri/build.rs
-#
-# where the build script invokes:
+# The project's build script uses:
 #
 #   tauri_build::build()
 #
-# Version 2.11.5 is intentionally aligned with the Tauri runtime
-# dependency below.
-tauri-build = { version = "2.11.5", features = [] }
+# from:
+#
+#   app/src-tauri/build.rs
+#
+# Tauri Build 2.x is used to match the Tauri 2.x application.
+tauri-build = { version = "2.0.0" }
 
 
 # ============================================================
 # Runtime / Application Dependencies
 # ============================================================
-# Dependencies compiled into the Rust/Tauri application.
-#
-# These libraries provide the desktop framework, filesystem
-# access, dialogs, notifications, serialization, networking,
-# database functionality, asynchronous processing, and other
-# backend functionality used by the application.
+# Runtime dependencies compiled into the desktop application.
 
 [dependencies]
 
@@ -197,23 +192,16 @@ tauri-build = { version = "2.11.5", features = [] }
 # ============================================================
 # Tauri Framework
 # ============================================================
-# Main framework connecting the React frontend with the Rust
+# Main framework connecting the React frontend to the Rust
 # desktop backend.
 #
 # tray-icon:
 #   Enables system-tray functionality.
 #
-# The Tauri Rust version is aligned with the frontend Tauri
-# packages:
-#
-#   @tauri-apps/api  = 2.11.5
-#   @tauri-apps/cli  = 2.11.5
-#
-# This alignment prevents the Tauri CLI from reporting a
-# major/minor version mismatch during:
-#
-#   npm run tauri build
-tauri = { version = "2.11.5", features = ["tray-icon"] }
+# The 2.x requirement allows Cargo to resolve an available
+# compatible Tauri 2.x release rather than requiring a specific
+# patch version that may not exist for every related crate.
+tauri = { version = "2", features = ["tray-icon"] }
 
 
 # ============================================================
@@ -221,31 +209,31 @@ tauri = { version = "2.11.5", features = ["tray-icon"] }
 # ============================================================
 # Provides native desktop dialog functionality.
 #
-# Typical uses include:
+# Typical uses:
 # - File selection
 # - Folder selection
 # - Confirmation dialogs
 # - Native application dialogs
 #
-# Version is aligned with the Tauri 2.11.x release family.
-tauri-plugin-dialog = "2.11.5"
+# This remains on the stable Tauri 2.x plugin line.
+tauri-plugin-dialog = "2.0.0"
 
 
 # ============================================================
 # Tauri File System Plugin
 # ============================================================
-# Provides controlled filesystem functionality for the Tauri
+# Provides controlled filesystem functionality for the desktop
 # application.
 #
-# Typical uses include:
+# Typical uses:
 # - Reading files
 # - Writing files
 # - Selecting download locations
 # - Managing application files
 # - Working with local application data
 #
-# Version is aligned with the Tauri 2.11.x release family.
-tauri-plugin-fs = "2.11.5"
+# This remains on the stable Tauri 2.x plugin line.
+tauri-plugin-fs = "2.0.0"
 
 
 # ============================================================
@@ -253,14 +241,14 @@ tauri-plugin-fs = "2.11.5"
 # ============================================================
 # Provides native desktop notification functionality.
 #
-# Example application events:
+# Typical application events:
 # - Download started
 # - Download completed
 # - Download failed
 # - Other application notifications
 #
-# Version is aligned with the Tauri 2.11.x release family.
-tauri-plugin-notification = "2.11.5"
+# This remains on the stable Tauri 2.x plugin line.
+tauri-plugin-notification = "2.0.0"
 
 
 # ============================================================
@@ -269,11 +257,11 @@ tauri-plugin-notification = "2.11.5"
 # Serialization and deserialization framework for Rust.
 #
 # derive:
-#   Enables automatic generation of Serialize and Deserialize
+#   Automatically generates Serialize and Deserialize
 #   implementations.
 #
-# Used for application data models and structured communication
-# between the Rust backend and frontend.
+# Used for structured application data exchanged between the
+# Rust backend and the frontend.
 serde = { version = "1", features = ["derive"] }
 
 
@@ -283,10 +271,10 @@ serde = { version = "1", features = ["derive"] }
 # JSON serialization and deserialization.
 #
 # Used for structured data exchanged between:
-# - React frontend
-# - Rust backend
+# - React
+# - Rust
 # - Application components
-# - Browser/media capture data
+# - Browser/media capture functionality
 serde_json = "1"
 
 
@@ -295,7 +283,7 @@ serde_json = "1"
 # ============================================================
 # Asynchronous runtime used by the Rust backend.
 #
-# Used for asynchronous operations such as:
+# Used for:
 # - Downloads
 # - Networking
 # - External processes
@@ -309,22 +297,22 @@ serde_json = "1"
 #   Start and manage external processes such as FFmpeg.
 #
 # sync:
-#   Provides synchronization primitives.
+#   Synchronization primitives.
 #
 # rt-multi-thread:
-#   Enables the multi-threaded Tokio runtime.
+#   Multi-threaded asynchronous runtime.
 #
 # macros:
-#   Provides Tokio helper macros.
+#   Tokio helper macros.
 #
 # time:
-#   Provides asynchronous timers and delays.
+#   Asynchronous timers.
 #
 # net:
-#   Provides asynchronous networking functionality.
+#   Networking functionality.
 #
 # io-util:
-#   Provides asynchronous I/O utilities.
+#   Asynchronous I/O utilities.
 tokio = {
     version = "1",
     features = [
@@ -345,10 +333,10 @@ tokio = {
 # Generates unique identifiers for application objects.
 #
 # v4:
-#   Enables randomly generated UUID version 4 values.
+#   Random UUID version 4 generation.
 #
 # serde:
-#   Enables serialization/deserialization support.
+#   Serialization/deserialization support.
 #
 # Potential uses:
 # - Download job IDs
@@ -364,7 +352,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # Rust interface for SQLite.
 #
 # bundled:
-#   Compiles SQLite together with the application so a separate
+#   Builds SQLite together with the application so a separate
 #   system SQLite installation is not required.
 #
 # Potential application data:
@@ -378,39 +366,36 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # ============================================================
 # URL
 # ============================================================
-# URL parsing and manipulation library.
+# URL parsing and manipulation.
 #
 # Used for:
 # - HTTP/HTTPS URL validation
-# - Reading URL components
-# - Processing media URLs
-# - Normalizing captured stream URLs
+# - URL component processing
+# - Media URL processing
+# - Captured stream URL normalization
 url = "2"
 
 
 # ============================================================
 # Chrono
 # ============================================================
-# Date and time library for Rust.
+# Date and time functionality.
 #
 # serde:
-#   Enables serialization and deserialization support.
+#   Serialization/deserialization support.
 #
-# Used for timestamps such as:
-# - Download creation time
-# - Browser capture creation time
-# - Application history timestamps
+# Used for:
+# - Download timestamps
+# - Browser capture timestamps
+# - Application history
 chrono = { version = "0.4", features = ["serde"] }
 
 
 # ============================================================
 # Thiserror
 # ============================================================
-# Provides utilities for creating structured application
-# specific error types.
-#
-# Useful when backend modules need clear and maintainable
-# error handling.
+# Utilities for defining structured application-specific
+# Rust error types.
 thiserror = "2"
 
 
@@ -418,20 +403,20 @@ thiserror = "2"
 # Reqwest
 # ============================================================
 # HTTP client used for network requests and direct media
-# stream downloads.
+# downloads.
 #
 # default-features = false:
 #   Disables Reqwest's default feature set so the application
-#   explicitly controls the enabled functionality.
+#   explicitly controls enabled functionality.
 #
 # rustls-tls:
-#   Provides HTTPS/TLS support using Rustls.
+#   HTTPS/TLS support using Rustls.
 #
 # stream:
 #   Enables streaming HTTP response bodies.
 #
 # Streaming allows large downloads to be processed in chunks
-# instead of loading the entire response into memory.
+# rather than loading the complete response into memory.
 reqwest = {
     version = "0.12",
     default-features = false,
@@ -445,8 +430,7 @@ reqwest = {
 # ============================================================
 # Futures Util
 # ============================================================
-# Utilities for working with Rust Futures and asynchronous
-# streams.
+# Utilities for Rust Futures and asynchronous streams.
 #
 # Used together with Tokio and Reqwest for streaming download
 # operations.
@@ -458,7 +442,7 @@ futures-util = "0.3"
 # ============================================================
 # Provides SHA-2 cryptographic hashing algorithms.
 #
-# SHA-256 can be used for:
+# Potential uses:
 # - File integrity verification
 # - Download verification
 # - Content hashing
@@ -469,9 +453,8 @@ sha2 = "0.10"
 # ============================================================
 # Hex Encoding
 # ============================================================
-# Converts binary data into hexadecimal strings and converts
-# hexadecimal strings back into binary data.
+# Converts binary values to hexadecimal strings and hexadecimal
+# strings back to binary data.
 #
-# Useful for displaying binary hash values such as SHA-256 in
-# a readable hexadecimal representation.
+# Useful for representing SHA-256 hashes in a readable format.
 hex = "0.4"
