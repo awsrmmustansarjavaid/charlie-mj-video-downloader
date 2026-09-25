@@ -40,7 +40,7 @@ use crate::{
 
 use chrono::Utc;
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 
@@ -83,6 +83,7 @@ pub async fn start_download(
     url: String,
     format_id: Option<String>,
     output_template: Option<String>,
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
 
@@ -90,26 +91,57 @@ pub async fn start_download(
     validate_url(&url)?;
 
     // Create a download entry in the application state.
-    // The returned ID uniquely identifies this download job.
     let id = create_job(&url, &url, &state)?;
 
-    // Start the actual media download in a background task.
-    tokio::spawn(async move {
-
-        // Download the media using the selected format and
-        // optional output filename/template.
-        //
-        // Errors are currently ignored here because the
-        // background task does not return its result directly.
-        let _ =
-            media::download(
-                &url,
-                format_id.as_deref(),
-                output_template.as_deref()
-            ).await;
+    // Always save normal URL downloads in the user's Downloads
+    // folder unless the frontend explicitly supplied a template.
+    let template = output_template.or_else(|| {
+        dirs::download_dir().map(|dir| {
+            dir.join("%(title)s.%(ext)s")
+                .to_string_lossy()
+                .to_string()
+        })
     });
 
-    // Return the download job ID to the frontend.
+    // Start the actual media download in a background task.
+    // The previous implementation discarded the result, which left
+    // every job permanently at `queued / 0% / unknown`.
+    let job_id = id.clone();
+    let download_url = url.clone();
+    tokio::spawn(async move {
+        let state = app.state::<AppState>();
+        set_job_status(state.inner(), &job_id, "downloading", 0.0, None, None);
+
+        let result = media::download(
+            &download_url,
+            format_id.as_deref(),
+            template.as_deref()
+        ).await;
+
+        match result {
+            Ok(output_path) => {
+                set_job_status(
+                    state.inner(),
+                    &job_id,
+                    "completed",
+                    100.0,
+                    Some(output_path),
+                    None
+                );
+            }
+            Err(error) => {
+                set_job_status(
+                    state.inner(),
+                    &job_id,
+                    "failed",
+                    0.0,
+                    None,
+                    Some(error)
+                );
+            }
+        }
+    });
+
     Ok(id)
 }
 
@@ -147,6 +179,7 @@ pub async fn start_captured_download(
     video_stream_id: String,
     audio_stream_id: Option<String>,
     output_path: Option<String>,
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
 
@@ -193,15 +226,15 @@ pub async fn start_captured_download(
     // Create Download Job Information
     // --------------------------------------------------------
 
-    // Generate a unique ID for this download job.
-    let job_id = Uuid::new_v4().to_string();
-
     // Use the captured page title as the default filename.
     // If no title is available, use a generic application name.
     let title = capture
         .title
         .clone()
         .unwrap_or_else(|| "Charlie MJ Video".into());
+
+    // Create the tracked download job before starting the background task.
+    let job_id = create_job(&video.url, &title, &state)?;
 
     // Use the user's Downloads directory for completed browser-capture
     // downloads instead of the process working directory. Installed
@@ -235,19 +268,12 @@ pub async fn start_captured_download(
 
 
     // --------------------------------------------------------
-    // Add Download Job to Application State
-    // --------------------------------------------------------
-    // Store the download in the application's download list
-    // so the frontend can display it.
-    let _ = create_job(&video.url, &title, &state)?;
-
-
-    // --------------------------------------------------------
     // Start Background Download Task
     // --------------------------------------------------------
     // The actual download and FFmpeg processing runs in a
     // background Tokio task.
     tokio::spawn(async move {
+        let state = app.state::<AppState>();
 
         // Temporary file used for the video stream.
         let video_path = temp.join("video.tmp");
@@ -259,12 +285,14 @@ pub async fn start_captured_download(
         // ----------------------------------------------------
         // Execute Download + Mux + Verification Pipeline
         // ----------------------------------------------------
+        set_job_status(state.inner(), &job_id, "downloading", 0.0, None, None);
         let result = async {
 
             // Download the selected video stream.
             downloader::download_stream(
                 &video.url,
-                &video_path
+                &video_path,
+                capture.page_url.as_deref()
             ).await?;
 
 
@@ -272,7 +300,8 @@ pub async fn start_captured_download(
             if let Some(a) = &audio {
                 downloader::download_stream(
                     &a.url,
-                    &audio_path
+                    &audio_path,
+                    capture.page_url.as_deref()
                 ).await?;
             }
 
@@ -324,13 +353,27 @@ pub async fn start_captured_download(
         // ----------------------------------------------------
         // Cleanup After Failure
         // ----------------------------------------------------
-        // If any step failed, remove the temporary files so
-        // incomplete downloads do not remain on disk.
-        if result.is_err() {
+        if let Err(error) = result {
             let _ = tokio::fs::remove_dir_all(&temp).await;
+            set_job_status(
+                state.inner(),
+                &job_id,
+                "failed",
+                0.0,
+                None,
+                Some(error)
+            );
+        } else {
+            set_job_status(
+                state.inner(),
+                &job_id,
+                "completed",
+                100.0,
+                Some(final_path.to_string_lossy().to_string()),
+                None
+            );
         }
     });
-
 
     // Return the job ID to the frontend immediately.
     Ok(job_id)
@@ -493,6 +536,33 @@ pub fn set_browser_watch(
         .map_err(|_| "state lock failed")? = enabled;
 
     Ok(())
+}
+
+
+// ============================================================
+// Update Download Job
+// ============================================================
+fn set_job_status(
+    state: &AppState,
+    id: &str,
+    status: &str,
+    progress: f64,
+    output_path: Option<String>,
+    error: Option<String>,
+) {
+    if let Ok(mut downloads) = state.downloads.lock() {
+        if let Some(job) = downloads.iter_mut().find(|job| job.id == id) {
+            job.status = status.to_string();
+            job.progress = progress.clamp(0.0, 100.0);
+            if let Some(path) = output_path {
+                job.output_path = Some(path);
+            }
+            job.error = error;
+            if status == "completed" {
+                job.speed_bytes_per_second = 0;
+            }
+        }
+    }
 }
 
 

@@ -210,33 +210,11 @@ function classify(url, responseHeaders = []) {
 // Removing these parameters helps prevent duplicate stream
 // entries from being created.
 function normalizeDriveUrl(raw) {
-
-  // Validate and parse the supplied URL.
-  const u = safeUrl(raw);
-
-  // Return the original value when it is not a valid URL.
-  if (!u) return raw;
-
-
-  // Check for Google video playback URLs.
-  if (
-    u.hostname.includes("googlevideo.com") &&
-    u.pathname.includes("videoplayback")
-  ) {
-
-    // Remove temporary/request-specific parameters.
-    [
-      "range",
-      "rn",
-      "rbuf",
-      "ump",
-      "srfvp"
-    ].forEach(k => u.searchParams.delete(k));
-  }
-
-
-  // Return the normalized URL as a string.
-  return u.toString();
+  // Keep the complete browser-issued media URL intact.
+  // Google video playback URLs can contain signed/temporary
+  // parameters; removing them can invalidate the URL and cause
+  // a direct browser-capture download to fail.
+  return raw;
 }
 
 

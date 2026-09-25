@@ -39,3 +39,12 @@ The workflow builds the Windows installer, packages the MV3 extension as CRX and
 
 - The Windows installer bundles `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` under the Tauri application resources directory. The desktop app resolves these bundled tools from the packaged resource directory, so end users do not need to install them separately.
 - The CRX release is a CRX3 package signed with RSA/SHA-256 using Chromium-compatible PKCS#1 v1.5 signing. The packer self-verifies the signature before creating the release artifact.
+
+## 0.2.2 permanent fixes
+
+This release fixes the two user-visible problems found during Windows testing:
+
+1. Chrome CRX installation no longer references the broken 1x1 placeholder `icon128.png`; the extension package contains verified 16x16, 48x48, and 128x128 PNG icons.
+2. Normal yt-dlp downloads no longer remain permanently at `queued / 0% / unknown`. The Rust backend now records the real background result, reports failures in the UI, saves normal downloads in the Windows Downloads folder, and points yt-dlp at the bundled FFmpeg directory.
+3. Browser-captured jobs also use the tracked job ID and finish as `completed` or `failed` instead of remaining queued.
+4. Google video playback URLs are preserved exactly as issued by the browser so signed authorization parameters are not removed.

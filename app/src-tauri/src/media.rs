@@ -333,10 +333,20 @@ pub async fn download(
     url: &str,
     format_id: Option<&str>,
     output_template: Option<&str>
-) -> Result<(), String> {
+) -> Result<String, String> {
 
     // Create a new asynchronous yt-dlp process.
     let mut command = Command::new(tool("yt-dlp.exe"));
+
+    // Explicitly point yt-dlp at the bundled FFmpeg directory.
+    // This is required for packaged Windows builds because FFmpeg
+    // is shipped as an application resource rather than installed
+    // globally on PATH.
+    let ffmpeg_dir = tool("ffmpeg.exe")
+        .parent()
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    command.arg("--ffmpeg-location").arg(ffmpeg_dir);
 
     // --------------------------------------------------------
     // General yt-dlp Options
@@ -411,6 +421,10 @@ pub async fn download(
         .arg("-o")
         .arg(output_template.unwrap_or("%(title)s.%(ext)s"));
 
+    // Ask yt-dlp to print the final file path after post-processing.
+    // The desktop UI uses this to show the actual saved file.
+    command.arg("--print").arg("after_move:filepath");
+
     // Add the media URL as the final yt-dlp argument.
     command.arg(url);
 
@@ -429,8 +443,25 @@ pub async fn download(
     // --------------------------------------------------------
     if output.status.success() {
 
-        // yt-dlp completed successfully.
-        Ok(())
+        // yt-dlp prints the final post-processed file path on stdout.
+        // Prefer an existing path, falling back to the last non-empty
+        // stdout line if the filesystem check is delayed.
+        let stdout_text = String::from_utf8_lossy(&output.stdout);
+        let lines: Vec<&str> = stdout_text
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .collect();
+        let printed_path = lines
+            .iter()
+            .rev()
+            .find(|line| std::path::Path::new(*line).exists())
+            .copied()
+            .or_else(|| lines.last().copied())
+            .unwrap_or_default()
+            .to_string();
+
+        Ok(printed_path)
 
     } else {
 

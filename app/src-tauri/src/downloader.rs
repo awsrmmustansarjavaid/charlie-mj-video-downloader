@@ -69,7 +69,8 @@ use tokio::{
 
 pub async fn download_stream(
     url: &str,
-    path: &Path
+    path: &Path,
+    referer: Option<&str>
 ) -> Result<u64, String> {
 
     // --------------------------------------------------------
@@ -126,11 +127,14 @@ pub async fn download_stream(
     // --------------------------------------------------------
     // Send HTTP GET Request
     // --------------------------------------------------------
-    // Request the media stream from the supplied URL.
-    //
-    // send().await performs the asynchronous network request.
-    let response = client
-        .get(url)
+    // Browser-captured streams may require the originating page
+    // as the HTTP Referer, so preserve it when available.
+    let mut request = client.get(url);
+    if let Some(value) = referer.filter(|value| !value.is_empty()) {
+        request = request.header(reqwest::header::REFERER, value);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| e.to_string())?;

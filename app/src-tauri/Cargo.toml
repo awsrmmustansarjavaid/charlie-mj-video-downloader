@@ -87,7 +87,7 @@ name = "charlie-mj-video-downloader"
 # Current application version.
 #
 # Keep this synchronized with the application release version.
-version = "0.2.0"
+version = "0.2.2"
 
 
 # ------------------------------------------------------------

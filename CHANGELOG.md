@@ -21,3 +21,14 @@
 
 - Fixed packaged Windows runtime tool discovery for yt-dlp/FFmpeg resources.
 - Fixed CRX3 RSA/SHA-256 signing compatibility and added self-verification before release.
+
+## 0.2.2 - Permanent runtime/download fix
+
+- Fixed the Chrome extension's broken placeholder PNG icon by shipping valid 16/48/128 PNG assets.
+- Added explicit extension toolbar icons for all supported sizes.
+- Fixed normal URL downloads being stuck forever at `queued / 0%` by tracking background yt-dlp success/failure.
+- Normal URL downloads now default to the user's Windows Downloads folder.
+- Bundled FFmpeg is explicitly passed to yt-dlp for packaged Windows builds.
+- The UI now displays download errors and the final saved file path.
+- Browser-captured downloads now use the same tracked job ID and update to completed/failed.
+- Preserved exact Google video playback URLs instead of stripping signed query parameters.

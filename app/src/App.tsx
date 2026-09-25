@@ -775,6 +775,13 @@ export default function App() {
                 max="100"
               />
 
+              {item.error && (
+                <div className="error">{item.error}</div>
+              )}
+
+              {item.outputPath && item.status === "completed" && (
+                <div className="muted">Saved: {item.outputPath}</div>
+              )}
 
               {/* Show Cancel only while the job is not finished. */}
               {![

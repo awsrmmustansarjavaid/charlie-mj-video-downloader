@@ -133,77 +133,10 @@ fn classify_mime(mime: Option<&str>) -> &'static str {
 //
 // If the URL cannot be parsed, the original URL is returned.
 fn normalized_drive_url(raw: &str) -> String {
-
-    // Attempt to parse the supplied URL.
-    //
-    // If parsing fails, return the original URL unchanged.
-    let Ok(mut parsed) = url::Url::parse(raw) else {
-        return raw.to_string();
-    };
-
-
-    // ----------------------------------------------------------
-    // Check for Google Video Playback URL
-    // ----------------------------------------------------------
-    // Only apply normalization when:
-    //
-    // 1. The hostname contains googlevideo.com
-    // 2. The path contains "videoplayback"
-    //
-    // These conditions identify Google video playback URLs.
-    if parsed
-        .host_str()
-        .map(|h| h.contains("googlevideo.com"))
-        .unwrap_or(false)
-        && parsed.path().contains("videoplayback")
-    {
-
-        // Query parameters that may be temporary or
-        // request-specific.
-        let remove = [
-            "range",
-            "rn",
-            "rbuf",
-            "ump",
-            "srfvp"
-        ];
-
-
-        // ------------------------------------------------------
-        // Keep Only Non-Temporary Query Parameters
-        // ------------------------------------------------------
-        // Read all existing query parameters and remove the
-        // parameters listed above.
-        //
-        // The remaining key/value pairs are stored so the URL
-        // query can be rebuilt afterward.
-        let pairs: Vec<(String, String)> = parsed
-            .query_pairs()
-            .filter(|(k, _)| !remove.contains(&k.as_ref()))
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-
-
-        // Remove the existing query string.
-        parsed.set_query(None);
-
-
-        // ------------------------------------------------------
-        // Rebuild the Query String
-        // ------------------------------------------------------
-        // Add the remaining query parameters back to the URL.
-        {
-            let mut q = parsed.query_pairs_mut();
-
-            for (k, v) in pairs {
-                q.append_pair(&k, &v);
-            }
-        }
-    }
-
-
-    // Return the normalized URL.
-    parsed.to_string()
+    // Preserve the exact browser-issued URL. Google video playback
+    // URLs can contain signed/temporary parameters that are required
+    // for authorization.
+    raw.to_string()
 }
 
 
