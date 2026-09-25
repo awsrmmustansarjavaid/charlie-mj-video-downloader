@@ -1,34 +1,55 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { DownloadItem, MediaInfo } from "../types";
+import { listen } from "@tauri-apps/api/event";
+import type { BrowserMediaCapture, DownloadItem, MediaInfo } from "../types";
 
-export async function analyzeUrl(url: string): Promise<MediaInfo> {
-  return invoke<MediaInfo>("analyze_url", { url });
-}
+export const analyzeUrl = (url: string) =>
+  invoke<MediaInfo>("analyze_url", { url });
 
-export async function startDownload(
+export const startDownload = (
   url: string,
   formatId?: string,
   outputTemplate?: string
-): Promise<string> {
-  return invoke<string>("start_download", {
+) =>
+  invoke<string>("start_download", {
     url,
     formatId: formatId ?? null,
     outputTemplate: outputTemplate ?? null
   });
-}
 
-export async function listDownloads(): Promise<DownloadItem[]> {
-  return invoke<DownloadItem[]>("list_downloads");
-}
+export const listDownloads = () =>
+  invoke<DownloadItem[]>("list_downloads");
 
-export async function cancelDownload(id: string): Promise<void> {
-  return invoke("cancel_download", { id });
-}
+export const listBrowserCaptures = () =>
+  invoke<BrowserMediaCapture[]>("list_browser_captures");
 
-export async function pauseDownload(id: string): Promise<void> {
-  return invoke("pause_download", { id });
-}
+export const startCapturedDownload = (
+  captureId: string,
+  videoStreamId: string,
+  audioStreamId?: string,
+  outputPath?: string
+) =>
+  invoke<string>("start_captured_download", {
+    captureId,
+    videoStreamId,
+    audioStreamId: audioStreamId ?? null,
+    outputPath: outputPath ?? null
+  });
 
-export async function resumeDownload(id: string): Promise<void> {
-  return invoke("resume_download", { id });
-}
+export const cancelDownload = (id: string) =>
+  invoke("cancel_download", { id });
+
+export const pauseDownload = (id: string) =>
+  invoke("pause_download", { id });
+
+export const resumeDownload = (id: string) =>
+  invoke("resume_download", { id });
+
+export const watchBrowser = (enabled: boolean) =>
+  invoke("set_browser_watch", { enabled });
+
+export const onBrowserMedia = (
+  callback: (capture: BrowserMediaCapture) => void
+) =>
+  listen<BrowserMediaCapture>("browser-media-detected", (event) =>
+    callback(event.payload)
+  );

@@ -1,66 +1,37 @@
 # Roadmap
 
-## Phase 1 — Foundation
+## Completed in this repository
 
-- [x] Tauri + React shell
-- [x] Rust command layer
-- [x] URL validation
-- [x] yt-dlp analyzer integration
-- [x] Basic download invocation
-- [x] Download model
+- Tauri + React + Rust architecture
+- yt-dlp analyzer
+- Direct media download command
+- Browser capture protocol
+- Google Drive-style stream parsing
+- Stream deduplication
+- Native Messaging bridge
+- Localhost IPC
+- Video/audio temporary downloads
+- FFmpeg stream-copy mux
+- Re-encode fallback
+- ffprobe verification
+- Browser capture UI
+- Download & Combine workflow
+- Windows NSIS bundle configuration
 
-## Phase 2 — Production download engine
+## Next production hardening
 
-- [ ] Process stdout progress events
-- [ ] True pause/resume
-- [ ] Cancellation handles
-- [ ] Retry policies
-- [ ] Concurrent workers
-- [ ] Queue priorities
-- [ ] Persistent SQLite state
-- [ ] Crash recovery
-- [ ] Speed limiting
-- [ ] HTTP direct-download engine
-- [ ] Checksum support
-
-## Phase 3 — Media
-
-- [ ] Quality profiles
-- [ ] MP3 presets
-- [ ] FFmpeg path management
-- [ ] Subtitles
-- [ ] Chapters
-- [ ] Thumbnails
-- [ ] Playlists
-- [ ] Batch URL imports
-- [ ] Authentication/cookies with secure storage
-
-## Phase 4 — Browser
-
-- [x] Manifest V3 foundation
-- [x] Native Messaging protocol foundation
-- [ ] Signed native host
-- [ ] Installer registration
-- [ ] Browser onboarding
-- [ ] Download Inbox
-- [ ] Media detection UX
-
-## Phase 5 — Windows UX
-
-- [ ] System tray
-- [ ] Windows notifications
-- [ ] File associations
-- [ ] Startup option
-- [ ] Auto update
-- [ ] Portable build
-- [ ] Code signing
-
-## Phase 6 — Release
-
-- [ ] Automated release artifacts
-- [ ] SBOM
-- [ ] Checksums
-- [ ] Third-party notices
-- [ ] Clean VM testing
-- [ ] Security review
-- [ ] Documentation
+- Persistent SQLite download records
+- Real yt-dlp stdout progress parsing
+- True process cancellation
+- Pause/resume using range-aware HTTP downloads
+- Concurrent worker pool
+- Queue priorities
+- Retry/backoff
+- Download speed limiter
+- Authenticated IPC
+- Secure cookie storage
+- Windows notifications/tray
+- Auto-update
+- Code signing
+- Browser store packaging
+- Automated installer registration tests

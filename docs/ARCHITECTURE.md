@@ -1,59 +1,73 @@
 # Architecture
 
+## Two media paths
+
+### Direct URL
+
 ```text
-Chrome / Edge
-      |
-      v
-Manifest V3 Extension
-      |
-      v
-Native Messaging Host
-      |
-      v
-Local Charlie MJ Desktop IPC
-      |
-      v
-Tauri / Rust
- |       |        |
- v       v        v
-SQLite  yt-dlp   FFmpeg
- |
- v
-Queue / History / Settings
- |
- v
-Windows filesystem
+URL
+ ↓
+yt-dlp
+ ↓
+Format selection
+ ↓
+Download
+ ↓
+FFmpeg
+ ↓
+ffprobe
+ ↓
+Final file
 ```
 
-## Responsibility boundaries
+### Browser capture
 
-### Browser extension
+```text
+Chrome / Edge
+ ↓
+Manifest V3 webRequest
+ ↓
+Stream parser
+ ↓
+Native Messaging
+ ↓
+localhost IPC
+ ↓
+Rust Browser Capture Engine
+ ↓
+Video + Audio pairing
+ ↓
+Direct HTTP download
+ ↓
+FFmpeg Smart Merge
+ ↓
+ffprobe verification
+ ↓
+Final file
+```
 
-- Capture page/link/media URL.
-- Provide context menu.
-- Send URL to native host.
-- Never store passwords.
-- Never execute arbitrary local commands.
+## Browser Capture Engine
 
-### Native host
+The engine is deliberately separated into:
 
-- Read browser messages.
-- Validate message shape.
-- Forward URL to desktop loopback endpoint.
+- `BrowserMediaDetector` — extension-side request observation.
+- `MediaStreamParser` — converts request metadata into normalized stream objects.
+- `MediaStreamSelector` — selects a video/audio pair.
+- `StreamDownloader` — downloads temporary streams.
+- `FFmpegMuxer` — combines them.
+- `MediaVerifier` — validates the result.
 
-### Rust desktop backend
+## Google Drive
 
-- Validate URLs.
-- Manage queue and application state.
-- Invoke yt-dlp.
-- Coordinate FFmpeg.
-- Persist state in SQLite.
-- Enforce concurrency and cancellation.
-- Expose safe Tauri commands.
+Google Drive-style media can expose temporary `videoplayback` requests. The extension detects video/audio MIME values and metadata such as `clen`, `dur` and `itag` when present, then normalizes known temporary request parameters and sends the resulting stream metadata to the desktop application.
 
-### React frontend
+The application must still operate only on media the user's current browser session is authorized to access.
 
-- UI only.
-- URL analyzer.
-- Format picker.
-- Queue/history/settings views.
+## Smart Merge
+
+1. Download video temporary file.
+2. Download audio temporary file if selected.
+3. Try FFmpeg stream copy.
+4. If the pair is incompatible, use controlled conversion.
+5. Verify the output using ffprobe.
+6. Delete temporary files only after successful processing.

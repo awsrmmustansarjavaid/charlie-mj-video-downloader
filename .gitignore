@@ -7,7 +7,7 @@ target/
 *.db
 *.sqlite
 *.sqlite3
-tools/bin/*
+tools/bin/*.exe
 !tools/bin/.gitkeep
 app/src-tauri/gen/
 .DS_Store

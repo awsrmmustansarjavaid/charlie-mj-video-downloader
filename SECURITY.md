@@ -1,15 +1,21 @@
 # Security Policy
 
-Please report security vulnerabilities privately to the repository maintainers rather than opening a public issue.
+Security-sensitive components include:
 
-Security-sensitive areas include:
+- Browser Native Messaging
+- Loopback IPC
+- URL parsing
+- yt-dlp/FFmpeg subprocess invocation
+- Cookie/authentication data
+- Installer registration
+- Downloaded metadata
 
-- Native Messaging
-- localhost IPC
-- URL handling
-- subprocess invocation
-- cookie/authentication storage
-- bundled binaries
-- installer behavior
+Rules:
 
-Never execute arbitrary shell commands derived from browser messages or downloaded metadata.
+- Treat browser input as untrusted.
+- Allow only HTTP/HTTPS media URLs.
+- Never execute a command supplied by a browser message.
+- Keep IPC on 127.0.0.1.
+- Add an authentication token before production release.
+- Restrict native-host origins to the official extension ID.
+- Never store browser credentials in plaintext.

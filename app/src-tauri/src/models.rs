@@ -27,6 +27,41 @@ pub struct MediaInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CapturedStream {
+    pub id: String,
+    pub source: String,
+    #[serde(rename = "tabId")]
+    pub tab_id: Option<i64>,
+    #[serde(rename = "pageUrl")]
+    pub page_url: Option<String>,
+    pub title: Option<String>,
+    #[serde(rename = "type")]
+    pub stream_type: String,
+    pub url: String,
+    pub mime: Option<String>,
+    pub quality: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub fps: Option<f64>,
+    pub bitrate: Option<u64>,
+    pub size: Option<u64>,
+    pub duration: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrowserMediaCapture {
+    #[serde(rename = "captureId")]
+    pub capture_id: String,
+    pub source: String,
+    #[serde(rename = "pageUrl")]
+    pub page_url: Option<String>,
+    pub title: Option<String>,
+    pub streams: Vec<CapturedStream>,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadItem {
     pub id: String,
     pub url: String,

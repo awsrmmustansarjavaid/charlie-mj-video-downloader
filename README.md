@@ -2,75 +2,117 @@
 
 > **Download. Convert. Manage.**
 
-A modern Windows desktop video/audio downloader and download manager built around a lightweight Tauri + React desktop UI, a Rust backend, SQLite persistence, yt-dlp media extraction, FFmpeg processing, and Chromium browser integration.
+Charlie MJ Video Downloader is a Windows desktop download manager with two complementary media paths:
 
-## Features
+1. **Direct/Web Download** — analyze supported URLs through yt-dlp and download the selected format.
+2. **Browser Media Capture** — detect authorized media streams from Chrome/Edge, send stream metadata to the desktop application, download video/audio separately when necessary, and automatically mux them into one final file with FFmpeg.
 
-- Video and audio downloads from supported websites
-- URL analysis and format selection
-- Quality selection from available source formats
-- Audio extraction and conversion
-- MP3/M4A/WAV/FLAC/OPUS output options
-- Playlists and batch URLs
-- Pause/resume/cancel/retry architecture
-- Download queue, history and categories
-- Concurrent download configuration
-- Speed limits and scheduling configuration
-- Clipboard monitoring
-- Drag/drop URL workflow
-- Subtitles and metadata options
-- Thumbnail download option
-- Chrome/Edge Chromium extension
+## Final feature set
+
+### Video & audio
+- Video downloads from sites supported by the configured extraction engine
+- 144p → 8K when the source exposes those formats
+- Best Quality / Best Video / Best Audio profiles
+- MP4/WebM/MKV and source formats where supported
+- MP3, M4A, WAV, FLAC and OPUS audio extraction
+- Playlist and batch URL architecture
+- Subtitle, thumbnail, chapter and metadata options
+- FPS/codec/format information
+- Smart output-container selection
+- Stream-copy muxing when possible
+- Controlled re-encode fallback
+- ffprobe output verification
+
+### Browser capture
+- Chrome/Chromium Manifest V3
+- Edge-compatible extension architecture
+- "Download with Charlie MJ" context menu
+- Browser page URL capture
+- Google Drive `videoplayback` detection
+- Video/audio stream detection
+- Stream parameter normalization
+- Stream deduplication
+- Automatic video/audio pairing
+- "Download & Combine"
+- Watch Browser mode
 - Native Messaging bridge
-- Dark/light UI
-- System tray and notifications architecture
-- Portable-mode friendly layout
-- Windows installer configuration
-- GitHub Actions CI/release workflow
-- CLI-friendly backend commands
+- Lightweight extension; desktop performs the heavy download/merge work
 
-## Important compatibility note
+### Download manager
+- Queue
+- Priority
+- Pause/resume state
+- Cancellation
+- Retry architecture
+- Concurrent jobs
+- Progress reporting
+- Speed reporting
+- Scheduler foundation
+- Clipboard workflow foundation
+- History/SQLite foundation
+- Automatic temporary-file cleanup
+- Download verification
 
-No downloader can truthfully guarantee every website forever. Website implementations, authentication, regional availability, API changes, and technical protections can affect compatibility. The application is designed to work with sites supported by the media extraction engine and should not be used to bypass DRM or other access controls.
+### Windows
+- Tauri 2
+- Rust backend
+- React + TypeScript UI
+- SQLite persistence
+- FFmpeg + ffprobe
+- yt-dlp
+- NSIS installer
+- GitHub Actions CI/release
+- Portable-friendly directory layout
 
-## Technology
-
-- **Desktop:** Tauri 2 + Rust
-- **UI:** React + TypeScript + Vite
-- **Database:** SQLite
-- **Media extraction:** yt-dlp
-- **Media processing:** FFmpeg
-- **Browser:** Manifest V3
-- **Browser ↔ desktop:** Chromium Native Messaging
-- **Installer:** Tauri/NSIS Windows bundle
-- **CI/CD:** GitHub Actions
-
-## Repository layout
+## Architecture
 
 ```text
-charlie-mj-video-downloader/
-├── app/                    # Tauri + React application
-├── browser-extension/      # Chromium Manifest V3 extension
-├── native-host/            # Native Messaging host
-├── tools/                  # yt-dlp / FFmpeg runtime location
-├── installer/              # Windows installer resources/scripts
-├── docs/                   # Architecture and development docs
-├── .github/workflows/      # CI/CD
-└── scripts/                # Development/build helpers
+                  ┌──────────────────────┐
+                  │ Chrome / Edge         │
+                  │ Manifest V3          │
+                  └──────────┬───────────┘
+                             │
+                    Native Messaging
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Native Host          │
+                  └──────────┬───────────┘
+                             │ localhost
+                             ▼
+┌──────────────┐     ┌──────────────────────┐
+│ Paste URL    │────►│ Charlie MJ Desktop   │
+└──────────────┘     │ Tauri + React + Rust │
+                     └──────────┬───────────┘
+                                │
+                  ┌─────────────┼─────────────┐
+                  ▼             ▼             ▼
+               yt-dlp       Downloader      Browser
+                  │             │            Capture
+                  │             │             │
+                  └─────────────┼─────────────┘
+                                ▼
+                         Temp Video/Audio
+                                │
+                                ▼
+                            FFmpeg
+                                │
+                                ▼
+                         ffprobe verify
+                                │
+                                ▼
+                          Final MP4/MKV
 ```
 
-## Development prerequisites
+## Important compatibility and legal note
 
-Install:
+The project supports media that the configured engines and browser session are authorized to access. Website implementations, authentication, regional restrictions and technical protections can affect compatibility. Do not use this project to bypass DRM, access controls, paywalls, or other technical protections, and respect applicable laws and service terms.
 
-1. Rust
-2. Node.js LTS
-3. Tauri prerequisites for Windows
-4. Git
-5. yt-dlp
-6. FFmpeg
+## Development
 
-For development, place the tools in:
+Install Rust, Node.js LTS and the Tauri Windows prerequisites.
+
+Place development media tools here:
 
 ```text
 tools/bin/yt-dlp.exe
@@ -78,9 +120,7 @@ tools/bin/ffmpeg.exe
 tools/bin/ffprobe.exe
 ```
 
-The release process can instead download and package pinned third-party binaries after their licenses and redistribution terms have been reviewed.
-
-## Run
+Then:
 
 ```powershell
 cd app
@@ -88,49 +128,33 @@ npm install
 npm run tauri dev
 ```
 
-## Build
+Build:
 
 ```powershell
-cd app
 npm run tauri build
 ```
 
-The Windows bundle is generated by Tauri according to `app/src-tauri/tauri.conf.json`.
+## Browser development
 
-## Browser extension
+1. Build/run the desktop application.
+2. Load `browser-extension/` as an unpacked extension.
+3. Build/install the native host.
+4. Replace the placeholder extension ID in the native-host manifest.
+5. Open an authorized media page.
+6. The extension sends detected media to Charlie MJ.
 
-Load `browser-extension/` as an unpacked extension during development.
+## Production release checklist
 
-The extension sends URLs to the local Native Messaging host. It does not perform the heavy media download itself.
-
-## Native host
-
-The native host is a small bridge that accepts JSON messages from Chromium and forwards them to the local desktop application's localhost IPC endpoint.
-
-Set the desktop app IPC endpoint through:
-
-```text
-CHARLIE_MJ_IPC_URL
-```
-
-Default:
-
-```text
-http://127.0.0.1:47821
-```
-
-## Security
-
-- Validate every URL before processing.
-- Treat browser messages as untrusted input.
-- Do not execute arbitrary commands received from the extension.
-- Keep localhost IPC bound to loopback.
-- Use an application-generated authentication token for production IPC.
-- Restrict native-host origins to your official extension IDs.
-- Never store browser credentials in plaintext.
-- Do not silently install extensions outside supported browser/enterprise mechanisms.
-- Review third-party binary licenses before distribution.
+- Pin tested yt-dlp and FFmpeg versions.
+- Review all third-party licenses and redistribution terms.
+- Sign the installer and binaries.
+- Restrict Native Messaging origins to the official extension ID.
+- Add IPC authentication in production.
+- Test clean Windows 10/11 VMs.
+- Publish SHA-256 checksums.
+- Publish third-party notices.
+- Do not silently install browser extensions outside supported browser/enterprise mechanisms.
 
 ## License
 
-This repository is intended as an open-source project template. Before publishing a release, choose and add a project license and verify the licenses/redistribution terms of yt-dlp, FFmpeg, Rust crates, npm packages, icons, fonts, and other bundled components.
+The application source in this repository is MIT licensed. Third-party tools and dependencies retain their own licenses. See `THIRD-PARTY-NOTICES.md`.

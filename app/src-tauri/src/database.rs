@@ -19,6 +19,15 @@ pub fn initialize(path: &Path) -> Result<()> {
           created_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS browser_captures (
+          capture_id TEXT PRIMARY KEY,
+          source TEXT NOT NULL,
+          page_url TEXT,
+          title TEXT,
+          payload_json TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS settings (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL

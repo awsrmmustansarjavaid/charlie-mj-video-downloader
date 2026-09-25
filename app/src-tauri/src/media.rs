@@ -3,9 +3,9 @@ use serde_json::Value;
 use std::{path::PathBuf, process::Stdio};
 use tokio::process::Command;
 
-fn yt_dlp_path() -> PathBuf {
-    if let Ok(path) = std::env::var("CHARLIE_MJ_YTDLP") {
-        return PathBuf::from(path);
+fn tool(name: &str) -> PathBuf {
+    if let Ok(dir) = std::env::var("CHARLIE_MJ_TOOLS_DIR") {
+        return PathBuf::from(dir).join(name);
     }
 
     let exe_dir = std::env::current_exe()
@@ -13,15 +13,12 @@ fn yt_dlp_path() -> PathBuf {
         .and_then(|p| p.parent().map(|x| x.to_path_buf()))
         .unwrap_or_default();
 
-    exe_dir.join("tools").join("yt-dlp.exe")
+    exe_dir.join("tools").join(name)
 }
 
 pub async fn analyze(url: &str) -> Result<MediaInfo, String> {
-    let output = Command::new(yt_dlp_path())
-        .arg("--dump-single-json")
-        .arg("--no-playlist")
-        .arg("--skip-download")
-        .arg(url)
+    let output = Command::new(tool("yt-dlp.exe"))
+        .args(["--dump-single-json", "--no-playlist", "--skip-download", url])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -35,10 +32,7 @@ pub async fn analyze(url: &str) -> Result<MediaInfo, String> {
     let raw: Value = serde_json::from_slice(&output.stdout)
         .map_err(|e| format!("Invalid yt-dlp JSON: {e}"))?;
 
-    let formats = raw["formats"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
+    let formats = raw["formats"].as_array().cloned().unwrap_or_default()
         .into_iter()
         .map(|f| MediaFormat {
             id: f["format_id"].as_str().unwrap_or_default().to_string(),
@@ -50,11 +44,9 @@ pub async fn analyze(url: &str) -> Result<MediaInfo, String> {
             acodec: f["acodec"].as_str().map(str::to_string),
             abr: f["abr"].as_f64(),
             note: f["format_note"].as_str().map(str::to_string),
-        })
-        .collect();
+        }).collect();
 
-    let subtitles = raw["subtitles"]
-        .as_object()
+    let subtitles = raw["subtitles"].as_object()
         .map(|m| m.keys().cloned().collect())
         .unwrap_or_default();
 
@@ -71,7 +63,7 @@ pub async fn analyze(url: &str) -> Result<MediaInfo, String> {
 }
 
 pub async fn download(url: &str, format_id: Option<&str>, output_template: Option<&str>) -> Result<(), String> {
-    let mut command = Command::new(yt_dlp_path());
+    let mut command = Command::new(tool("yt-dlp.exe"));
     command.arg("--newline").arg("--no-playlist");
 
     match format_id {

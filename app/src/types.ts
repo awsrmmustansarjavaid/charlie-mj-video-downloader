@@ -1,12 +1,6 @@
 export type DownloadStatus =
-  | "queued"
-  | "analyzing"
-  | "downloading"
-  | "processing"
-  | "paused"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  | "queued" | "analyzing" | "downloading" | "processing"
+  | "paused" | "completed" | "failed" | "cancelled";
 
 export interface MediaFormat {
   id: string;
@@ -29,6 +23,33 @@ export interface MediaInfo {
   webpageUrl: string;
   formats: MediaFormat[];
   subtitles: string[];
+}
+
+export interface CapturedStream {
+  id: string;
+  source: string;
+  tabId?: number;
+  pageUrl?: string;
+  title?: string;
+  type: "video" | "audio" | "unknown";
+  url: string;
+  mime?: string;
+  quality?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  bitrate?: number;
+  size?: number;
+  duration?: number;
+}
+
+export interface BrowserMediaCapture {
+  captureId: string;
+  source: string;
+  pageUrl?: string;
+  title?: string;
+  streams: CapturedStream[];
+  createdAt: string;
 }
 
 export interface DownloadItem {

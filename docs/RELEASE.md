@@ -1,0 +1,21 @@
+# Release Checklist
+
+- [ ] Pin yt-dlp version
+- [ ] Pin FFmpeg version
+- [ ] Test Windows 10
+- [ ] Test Windows 11
+- [ ] Test clean install
+- [ ] Test uninstall
+- [ ] Test upgrade
+- [ ] Test browser extension registration
+- [ ] Test Native Messaging
+- [ ] Test direct URL
+- [ ] Test browser-captured video
+- [ ] Test video-only
+- [ ] Test audio-only
+- [ ] Test video + audio mux
+- [ ] Test failed download cleanup
+- [ ] Test ffprobe verification
+- [ ] Generate SHA-256
+- [ ] Sign installer
+- [ ] Publish third-party notices

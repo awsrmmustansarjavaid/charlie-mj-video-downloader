@@ -1,13 +1,47 @@
 # Native Messaging Host
 
-This bridge receives JSON from the Chromium extension and forwards approved URLs to the local Charlie MJ application.
+The host accepts browser JSON messages and forwards them to Charlie MJ over localhost.
 
-## Production requirements
+Supported messages:
 
-- Build the Python host into a Windows executable.
-- Install the host manifest through the Windows installer.
-- Replace the placeholder extension ID.
-- Bind the desktop IPC server to loopback only.
-- Add an authentication token to the IPC protocol.
-- Validate all incoming URLs.
-- Never execute arbitrary commands received from the browser.
+```json
+{
+  "type": "open_url",
+  "url": "https://example.test/video"
+}
+```
+
+and:
+
+```json
+{
+  "type": "media_detected",
+  "source": "google_drive",
+  "pageUrl": "https://drive.google.com/...",
+  "title": "Example video",
+  "streams": [
+    {
+      "streamType": "video",
+      "url": "https://...",
+      "mime": "video/mp4",
+      "quality": "1080p",
+      "size": 123456
+    },
+    {
+      "streamType": "audio",
+      "url": "https://...",
+      "mime": "audio/mp4",
+      "quality": "128kbps",
+      "size": 12345
+    }
+  ]
+}
+```
+
+Production requirements:
+
+- Build with PyInstaller or an equivalent trusted packaging method.
+- Install the manifest in the browser's Native Messaging location.
+- Replace the extension ID placeholder.
+- Add authenticated IPC before public release.
+- Never execute browser-provided commands.

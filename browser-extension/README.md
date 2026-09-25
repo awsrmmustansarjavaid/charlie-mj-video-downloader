@@ -1,14 +1,27 @@
 # Charlie MJ Browser Extension
 
-Manifest V3 Chromium extension for Chrome/Edge-compatible development.
+Manifest V3 Chromium extension.
+
+## What it does
+
+- Watches completed browser media requests.
+- Detects `video/*` and `audio/*` responses.
+- Detects Google Drive-style `videoplayback` requests.
+- Reads `mime`, `clen`, `dur`, `itag`/quality information where present.
+- Removes temporary range/request parameters for Google Drive-style media URLs.
+- Deduplicates streams.
+- Sends stream metadata to the Charlie MJ Native Messaging host.
+- Provides a context-menu "Download with Charlie MJ" action.
+
+The extension is intentionally lightweight. It does not download the full media into the extension.
 
 ## Development
 
-1. Open `chrome://extensions`.
-2. Enable Developer mode.
-3. Load `browser-extension/` as an unpacked extension.
-4. Install the Charlie MJ Native Messaging host separately.
+1. Run the desktop app.
+2. Open `chrome://extensions`.
+3. Enable Developer Mode.
+4. Load this directory as an unpacked extension.
+5. Install/configure the native messaging host.
+6. Replace the placeholder extension ID in the native-host manifest.
 
-The extension does not perform media extraction itself. It sends a URL to the desktop application.
-
-For production, replace the placeholder native host configuration with your signed, officially published extension ID and package the host during the Windows installer process.
+For production, request only the browser permissions required by the final implementation and follow Chrome/Edge extension policies.

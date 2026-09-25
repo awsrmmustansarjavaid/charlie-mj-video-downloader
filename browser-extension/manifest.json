@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Charlie MJ Video Downloader",
-  "version": "0.1.0",
-  "description": "Send supported media URLs to Charlie MJ Video Downloader.",
-  "permissions": ["contextMenus", "storage", "tabs"],
-  "host_permissions": ["<all_urls>"],
+  "version": "0.2.0",
+  "description": "Detect authorized browser media and send stream metadata to Charlie MJ Video Downloader.",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
