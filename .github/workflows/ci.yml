@@ -3,48 +3,78 @@
 # ============================================================
 #
 # Purpose:
-# - Validate the React/Vite frontend
-# - Validate the Rust/Tauri backend
-# - Run automatically on pushes to main
-# - Run automatically for pull requests
-# - Ensure the project is ready for the Windows release build
+#
+# This workflow validates the application before a Windows
+# release build is created.
+#
+# It validates two independent parts of the application:
+#
+# 1. React / TypeScript / Vite frontend
+# 2. Rust / Tauri backend
+#
 #
 # IMPORTANT:
-# - This workflow ONLY validates the project.
-# - It does NOT create the Windows installer.
-# - It does NOT create an .exe file.
+#
+# This workflow ONLY performs CI validation.
+#
+# It does NOT create:
+#
+# - Windows .exe
+# - Windows .msi
+# - NSIS installer
+# - GitHub Release
 #
 # The Windows installer is created separately by:
 #
 #     .github/workflows/windows-release.yml
 #
 #
-# CI PIPELINE:
+# ============================================================
+# CI PIPELINE
+# ============================================================
 #
 # Developer
-#     ↓
+#     |
+#     v
 # Git Push / Pull Request
-#     ↓
+#     |
+#     v
 # GitHub Actions
-#     ↓
-# ┌───────────────────────────────┐
-# │            CI                 │
-# │                               │
-# │  Frontend       Rust/Tauri    │
-# │     │               │         │
-# │     ↓               ↓         │
-# │   npm ci         cargo check  │
-# │     ↓               ↓         │
-# │ npm build       Rust check    │
-# └───────────────────────────────┘
-#     ↓
-# CI SUCCESS
-#     ↓
-# Windows Release Workflow
-#     ↓
-# Tauri Build
-#     ↓
-# Windows Installer (.exe)
+#     |
+#     +----------------------------------+
+#     |              CI                  |
+#     |                                  |
+#     | Frontend Build    Rust Check     |
+#     |       |               |          |
+#     |       v               v          |
+#     | package.json       Cargo.toml     |
+#     |       |               |          |
+#     | package-lock.json   Rust stable  |
+#     |       |               |          |
+#     |       v               v          |
+#     |     npm ci         cargo check    |
+#     |       |                          |
+#     |       v                          |
+#     |   npm run build                  |
+#     |       |                          |
+#     |       v                          |
+#     |      dist/                       |
+#     +----------------------------------+
+#                    |
+#                    v
+#                CI SUCCESS
+#                    |
+#                    v
+#        Windows Release Workflow
+#                    |
+#                    v
+#               Tauri Build
+#                    |
+#                    v
+#          Windows NSIS Installer
+#                    |
+#                    v
+#                  .exe
 #
 # ============================================================
 
@@ -58,25 +88,15 @@ name: CI
 
 on:
 
-  # ----------------------------------------------------------
-  # Run CI whenever changes are pushed to the main branch.
-  #
-  # This is the main validation path before the Windows
-  # release workflow builds the application.
-  # ----------------------------------------------------------
-
+  # Run CI whenever changes are pushed to main.
   push:
     branches:
       - main
 
-
-  # ----------------------------------------------------------
-  # Run CI whenever a pull request is opened or updated.
+  # Run CI for pull requests.
   #
-  # This allows frontend and Rust problems to be detected
+  # This allows frontend and backend problems to be detected
   # before changes are merged into main.
-  # ----------------------------------------------------------
-
   pull_request:
 
 
@@ -95,29 +115,37 @@ jobs:
   #
   # Validate the React/Vite frontend.
   #
-  # This job verifies:
+  # Validation sequence:
   #
-  # 1. Repository can be checked out
-  # 2. Node.js can be configured
-  # 3. package.json exists
-  # 4. package-lock.json exists
-  # 5. package-lock.json is a valid npm lockfile
-  # 6. npm ci can install dependencies
-  # 7. TypeScript can compile
-  # 8. Vite can create the production frontend build
+  # 1. Checkout repository
+  # 2. Install Node.js 22
+  # 3. Verify package.json
+  # 4. Verify package-lock.json
+  # 5. Validate package-lock.json JSON
+  # 6. Run npm ci
+  # 7. Run npm run build
+  # 8. Verify dist/ directory
+  #
   #
   # IMPORTANT:
   #
-  # npm ci intentionally requires a valid and synchronized
-  # package-lock.json.
+  # npm ci is intentionally used instead of npm install.
   #
-  # package.json and package-lock.json must therefore be
-  # committed together.
+  # npm ci provides a clean and reproducible dependency
+  # installation based on package-lock.json.
   #
-  # If package.json is changed, package-lock.json must also
-  # be regenerated and committed.
+  # package.json and package-lock.json must therefore remain
+  # synchronized.
   #
-  # This provides a reproducible dependency installation.
+  # When dependencies are changed locally:
+  #
+  #     npm install
+  #
+  # should be used to regenerate package-lock.json.
+  #
+  # Then both package.json and package-lock.json should be
+  # committed to the repository.
+  #
   # ==========================================================
 
   frontend:
@@ -127,21 +155,12 @@ jobs:
     runs-on: windows-latest
 
 
-    # --------------------------------------------------------
-    # All shell commands in this job run from:
+    # All commands in this job execute from:
     #
     #     app/
     #
-    # Therefore:
-    #
-    #     package.json
-    #     package-lock.json
-    #     vite.config.ts
-    #     src/
-    #
-    # are referenced relative to the app directory.
-    # --------------------------------------------------------
-
+    # Therefore package.json, package-lock.json, src/,
+    # vite.config.*, and dist/ are referenced relative to app/.
     defaults:
       run:
         working-directory: app
@@ -150,38 +169,38 @@ jobs:
     steps:
 
 
-      # ------------------------------------------------------
-      # STEP 1 - Checkout repository
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 1 - CHECKOUT REPOSITORY
+      # ======================================================
       #
-      # Downloads the current repository contents to the
+      # Downloads the repository source code to the temporary
       # GitHub Actions Windows runner.
-      # ------------------------------------------------------
+      # ======================================================
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
 
-      # ------------------------------------------------------
-      # STEP 2 - Setup Node.js
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 2 - SETUP NODE.JS
+      # ======================================================
       #
       # Node.js 22 is used for:
       #
+      # - npm
       # - React
       # - TypeScript
       # - Vite
-      # - npm
       # - Tauri CLI
       #
-      # npm caching is enabled to speed up future builds.
+      # npm dependency caching is enabled.
       #
       # The cache uses:
       #
       #     app/package-lock.json
       #
       # as the dependency cache key.
-      # ------------------------------------------------------
+      # ======================================================
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -191,26 +210,26 @@ jobs:
           cache-dependency-path: app/package-lock.json
 
 
-      # ------------------------------------------------------
-      # STEP 3 - Verify package.json
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 3 - VERIFY package.json
+      # ======================================================
       #
-      # Confirms that the frontend project contains the npm
-      # package definition before attempting dependency
-      # installation.
-      # ------------------------------------------------------
+      # Confirms that the frontend project contains its npm
+      # package definition.
+      # ======================================================
 
       - name: Verify package.json
         shell: pwsh
         run: |
 
           Write-Host "============================================"
-          Write-Host "Checking app/package.json"
+          Write-Host "Checking package.json"
           Write-Host "============================================"
 
           if (-not (Test-Path "package.json")) {
 
-            Write-Error "app/package.json was not found."
+            Write-Error "ERROR: app/package.json was not found."
+
             exit 1
           }
 
@@ -218,31 +237,37 @@ jobs:
           Write-Host ""
 
 
-      # ------------------------------------------------------
-      # STEP 4 - Verify package-lock.json exists
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 4 - VERIFY package-lock.json
+      # ======================================================
       #
-      # npm ci requires a package-lock.json or npm-shrinkwrap
-      # file.
+      # npm ci requires a valid package-lock.json.
       #
-      # This check makes the error easier to understand if the
-      # lockfile is missing.
-      # ------------------------------------------------------
+      # This step checks:
+      #
+      # - The file exists
+      # - The file is not empty
+      #
+      # JSON validity is checked separately in the next step.
+      # ======================================================
 
-      - name: Verify package-lock.json exists
+      - name: Verify package-lock.json
         shell: pwsh
         run: |
 
           Write-Host "============================================"
-          Write-Host "Checking app/package-lock.json"
+          Write-Host "Checking package-lock.json"
           Write-Host "============================================"
 
           if (-not (Test-Path "package-lock.json")) {
 
-            Write-Error "app/package-lock.json was not found."
+            Write-Error "ERROR: app/package-lock.json was not found."
             Write-Error ""
             Write-Error "npm ci requires a committed package-lock.json."
-            Write-Error "Generate a valid lockfile and commit it to the repository."
+            Write-Error ""
+            Write-Error "Regenerate the lockfile locally with:"
+            Write-Error "  cd app"
+            Write-Error "  npm install"
 
             exit 1
           }
@@ -251,7 +276,8 @@ jobs:
 
           if ($lockFileSize -le 0) {
 
-            Write-Error "app/package-lock.json is empty."
+            Write-Error "ERROR: package-lock.json is empty."
+
             exit 1
           }
 
@@ -260,116 +286,118 @@ jobs:
           Write-Host ""
 
 
-      # ------------------------------------------------------
-      # STEP 5 - Validate package-lock.json
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 5 - VALIDATE package-lock.json
+      # ======================================================
       #
-      # This step checks that the lockfile is actually a valid
-      # npm lockfile before running the full dependency
-      # installation.
+      # Node.js is used to parse the lockfile.
       #
-      # The command:
+      # This is intentional.
       #
-      #     npm install --package-lock-only
+      # npm package-lock.json files can contain a root package
+      # entry with an empty property name:
       #
-      # is NOT used here because it could modify the lockfile.
+      #     "packages": {
+      #       "": {
+      #         ...
+      #       }
+      #     }
       #
-      # Instead, npm is asked to read the existing lockfile
-      # information.
+      # PowerShell ConvertFrom-Json can reject this valid npm
+      # structure on the GitHub Actions runner.
       #
-      # npm ci itself remains the authoritative dependency
-      # installation command.
-      # ------------------------------------------------------
+      # Node.js JSON.parse() correctly handles it.
+      #
+      # This step DOES NOT modify the lockfile.
+      #
+      # It only verifies that package-lock.json is valid JSON.
+      # ======================================================
 
-      - name: Validate npm lockfile
+      - name: Validate package-lock.json JSON
         shell: pwsh
         run: |
 
           Write-Host "============================================"
-          Write-Host "Validating npm lockfile"
+          Write-Host "Validating package-lock.json JSON"
           Write-Host "============================================"
 
-          $lockFile = Get-Content "package-lock.json" -Raw | ConvertFrom-Json
+          node -e "const fs=require('fs'); try { const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8')); if (!lock || typeof lock !== 'object' || Array.isArray(lock)) throw new Error('The lockfile root must be a JSON object.'); console.log('package-lock.json contains valid JSON.'); console.log('lockfileVersion:', lock.lockfileVersion ?? 'not specified'); } catch (error) { console.error('ERROR: package-lock.json contains invalid JSON.'); console.error(error.message); process.exit(1); }"
 
-          if ($null -eq $lockFile.lockfileVersion) {
+          if ($LASTEXITCODE -ne 0) {
 
-            Write-Error "package-lock.json does not contain lockfileVersion."
-            Write-Error "The file is not a valid modern npm lockfile."
+            Write-Error ""
+            Write-Error "The npm lockfile is malformed."
+            Write-Error ""
+            Write-Error "Regenerate it locally with:"
+            Write-Error "  cd app"
+            Write-Error "  Remove-Item package-lock.json -Force"
+            Write-Error "  npm install"
+            Write-Error "  npm ci"
+            Write-Error ""
+            Write-Error "Then commit the regenerated package-lock.json."
 
             exit 1
           }
 
-          Write-Host "npm lockfileVersion: $($lockFile.lockfileVersion)"
-
-          if ([int]$lockFile.lockfileVersion -lt 1) {
-
-            Write-Error "Unsupported npm lockfileVersion."
-            exit 1
-          }
-
-          Write-Host "package-lock.json structure is valid."
           Write-Host ""
 
 
-      # ------------------------------------------------------
-      # STEP 6 - Install frontend dependencies
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 6 - INSTALL FRONTEND DEPENDENCIES
+      # ======================================================
       #
-      # npm ci performs a clean dependency installation based
-      # strictly on package-lock.json.
+      # npm ci is the authoritative dependency installation
+      # check for this CI workflow.
       #
-      # DO NOT replace this with:
+      # It verifies that package.json and package-lock.json
+      # are compatible and installs the exact dependency tree
+      # described by the lockfile.
       #
-      #     npm install
+      # DO NOT replace npm ci with npm install simply to
+      # bypass a lockfile error.
       #
-      # in the final CI workflow.
-      #
-      # npm ci provides:
-      #
-      # - Reproducible dependency versions
-      # - Clean installation
-      # - Faster CI installation
-      # - Detection of package.json / lockfile mismatch
-      #
-      # If this step fails, fix package.json and
-      # package-lock.json rather than bypassing npm ci.
-      # ------------------------------------------------------
+      # If npm ci fails because the files are out of sync,
+      # regenerate package-lock.json locally with npm install
+      # and commit it.
+      # ======================================================
 
       - name: Install frontend dependencies
         run: npm ci
 
 
-      # ------------------------------------------------------
-      # STEP 7 - Build frontend
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 7 - BUILD FRONTEND
+      # ======================================================
       #
-      # Runs the build command from package.json:
+      # Runs the build script defined in package.json.
       #
-      #     npm run build
+      # Current build command:
       #
-      # Which currently performs:
+      #     tsc -b && vite build
       #
-      #     tsc -b
-      #     vite build
+      # This validates:
       #
-      # This confirms that the React/TypeScript/Vite frontend
-      # can successfully compile for production.
-      # ------------------------------------------------------
+      # - TypeScript compilation
+      # - React source code
+      # - Vite configuration
+      # - Production frontend bundling
+      # ======================================================
 
       - name: Build frontend
         run: npm run build
 
 
-      # ------------------------------------------------------
-      # STEP 8 - Verify frontend build output
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 8 - VERIFY FRONTEND BUILD OUTPUT
+      # ======================================================
       #
-      # Confirms that Vite actually created the production
-      # output directory.
+      # Vite should create:
       #
-      # This provides an additional validation layer after the
-      # frontend build command succeeds.
-      # ------------------------------------------------------
+      #     app/dist/
+      #
+      # This confirms that the production frontend build
+      # generated its expected output directory.
+      # ======================================================
 
       - name: Verify frontend build output
         shell: pwsh
@@ -381,14 +409,17 @@ jobs:
 
           if (-not (Test-Path "dist")) {
 
-            Write-Error "Frontend build directory 'dist' was not created."
-            Write-Error "The Vite production build may not have completed correctly."
+            Write-Error "ERROR: frontend dist/ directory was not created."
+            Write-Error ""
+            Write-Error "The Vite production build did not produce the expected output."
 
             exit 1
           }
 
           Write-Host "Frontend build output found successfully."
           Write-Host ""
+
+          Write-Host "Frontend Build completed successfully."
 
 
   # ==========================================================
@@ -400,25 +431,16 @@ jobs:
   # Validate the Rust/Tauri backend independently from the
   # frontend.
   #
-  # This job verifies:
+  # Validation sequence:
   #
-  # 1. Repository can be checked out
-  # 2. Stable Rust can be installed
-  # 3. Cargo can resolve dependencies
-  # 4. Rust source code can be checked
-  # 5. The Tauri backend has no Rust compilation errors
+  # 1. Checkout repository
+  # 2. Verify Cargo.toml
+  # 3. Install stable Rust
+  # 4. Run cargo check
   #
-  # IMPORTANT:
+  # cargo check validates the Rust project without producing
+  # the final Windows installer.
   #
-  # cargo check does NOT create:
-  #
-  # - Windows installer
-  # - .exe
-  # - .msi
-  #
-  # The actual Windows application is built separately by:
-  #
-  #     .github/workflows/windows-release.yml
   # ==========================================================
 
   rust:
@@ -428,18 +450,12 @@ jobs:
     runs-on: windows-latest
 
 
-    # --------------------------------------------------------
-    # All Cargo commands in this job run from:
+    # All Cargo commands in this job execute from:
     #
     #     app/src-tauri/
     #
-    # This directory contains:
-    #
-    #     Cargo.toml
-    #     src/
-    #     Tauri configuration
-    # --------------------------------------------------------
-
+    # This directory contains Cargo.toml and the Tauri Rust
+    # backend source code.
     defaults:
       run:
         working-directory: app/src-tauri
@@ -448,25 +464,21 @@ jobs:
     steps:
 
 
-      # ------------------------------------------------------
-      # STEP 1 - Checkout repository
-      # ------------------------------------------------------
-      #
-      # Downloads the repository source code to the GitHub
-      # Actions Windows runner.
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 1 - CHECKOUT REPOSITORY
+      # ======================================================
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
 
-      # ------------------------------------------------------
-      # STEP 2 - Verify Cargo project
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 2 - VERIFY CARGO PROJECT
+      # ======================================================
       #
-      # Confirms that Cargo.toml exists before attempting
-      # to run cargo check.
-      # ------------------------------------------------------
+      # Confirms that the Rust/Tauri project contains its
+      # Cargo manifest.
+      # ======================================================
 
       - name: Verify Cargo project
         shell: pwsh
@@ -478,7 +490,8 @@ jobs:
 
           if (-not (Test-Path "Cargo.toml")) {
 
-            Write-Error "app/src-tauri/Cargo.toml was not found."
+            Write-Error "ERROR: app/src-tauri/Cargo.toml was not found."
+
             exit 1
           }
 
@@ -486,113 +499,157 @@ jobs:
           Write-Host ""
 
 
-      # ------------------------------------------------------
-      # STEP 3 - Setup stable Rust
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 3 - SETUP STABLE RUST
+      # ======================================================
       #
-      # GitHub Actions installs the stable Rust toolchain on
-      # the temporary Windows runner.
+      # Installs the current stable Rust toolchain on the
+      # temporary GitHub Actions Windows runner.
       #
-      # Rust and Cargo do NOT need to be installed locally on
-      # your personal Windows PC for this workflow.
-      # ------------------------------------------------------
+      # Rust does not need to be preinstalled on the developer's
+      # computer for this CI job to work.
+      # ======================================================
 
       - name: Setup stable Rust
         uses: dtolnay/rust-toolchain@stable
 
 
-      # ------------------------------------------------------
-      # STEP 4 - Check Rust/Tauri backend
-      # ------------------------------------------------------
+      # ======================================================
+      # STEP 4 - CHECK RUST / TAURI BACKEND
+      # ======================================================
       #
       # cargo check:
       #
-      # - Parses the Rust project
+      # - Parses Rust source
       # - Resolves Rust dependencies
-      # - Checks Rust source code
-      # - Performs compilation checks
-      # - Detects Rust/Tauri compilation problems
+      # - Checks the Rust project
+      # - Checks the Tauri backend compilation
       #
-      # It does NOT produce the final Windows installer.
-      # ------------------------------------------------------
+      # cargo check does NOT create:
+      #
+      # - Windows .exe
+      # - Windows .msi
+      # - NSIS installer
+      #
+      # The Windows release workflow handles the actual Tauri
+      # application build.
+      # ======================================================
 
       - name: Check Rust code
         run: cargo check
 
 
 # ============================================================
-# END OF CI WORKFLOW
-# ============================================================
-#
-# EXPECTED SUCCESSFUL PIPELINE
-#
-# Push to main
-#     ↓
-# GitHub Actions
-#     ↓
-# ┌─────────────────────────────────────────┐
-# │                  CI                     │
-# │                                         │
-# │  Frontend Build       Rust Check        │
-# │       │                   │             │
-# │       ↓                   ↓             │
-# │ package.json          Cargo.toml        │
-# │       ↓                   ↓             │
-# │ package-lock.json     Stable Rust       │
-# │       ↓                   ↓             │
-# │ npm ci                cargo check       │
-# │       ↓                                 │
-# │ npm run build                           │
-# │       ↓                                 │
-# │ frontend/dist                            │
-# └─────────────────────────────────────────┘
-#     ↓
 # CI SUCCESS
-#     ↓
-# Windows Release Workflow
-#     ↓
-# npm ci
-#     ↓
-# npm run tauri build
-#     ↓
-# Tauri Windows Application
-#     ↓
-# NSIS Windows Installer
-#     ↓
-# .exe
-#     ↓
-# GitHub Actions Artifact
-#
 # ============================================================
 #
-# IMPORTANT:
+# When both jobs succeed:
 #
-# If CI fails at:
+#     Frontend Build     ✅
+#     Rust Check         ✅
 #
+# the source code has passed CI validation.
+#
+#
+# The separate Windows release workflow can then build:
+#
+#     React/Vite frontend
+#             +
+#       Rust/Tauri backend
+#             ↓
+#        Tauri Windows Build
+#             ↓
+#       NSIS Windows Installer
+#             ↓
+#              .exe
+#
+#
+# ============================================================
+# TROUBLESHOOTING
+# ============================================================
+#
+#
+# 1. package-lock.json JSON validation fails
+#
+# Error:
+#
+#     Invalid package-lock.json
+#
+# Fix locally:
+#
+#     cd app
+#     Remove-Item package-lock.json -Force
+#     npm install
 #     npm ci
 #
-# check:
+# Then commit the regenerated package-lock.json.
+#
+#
+# 2. npm ci fails
+#
+# This normally means package.json and package-lock.json
+# are not synchronized.
+#
+# Fix:
+#
+#     cd app
+#     npm install
+#     npm ci
+#
+# Then commit package.json and package-lock.json if npm
+# changed either file.
+#
+#
+# 3. npm run build fails
+#
+# Check:
 #
 #     app/package.json
-#     app/package-lock.json
+#     app/src/
+#     app/vite.config.*
+#     app/tsconfig*.json
 #
-# They must be synchronized.
 #
-# If CI fails at:
+# 4. cargo check fails
 #
-#     cargo check
-#
-# check:
+# Check:
 #
 #     app/src-tauri/Cargo.toml
 #     app/src-tauri/src/
+#     Tauri configuration
+#     Rust dependencies
 #
-# If CI succeeds:
 #
-#     Frontend Build       ✅
-#     Rust Check           ✅
+# 5. dist/ verification fails
 #
-# then the project is ready for the separate Windows release
-# workflow.
+# Check whether:
+#
+#     npm run build
+#
+# successfully creates:
+#
+#     app/dist/
+#
 #
 # ============================================================
+# IMPORTANT DEVELOPMENT RULE
+# ============================================================
+#
+# When changing npm dependencies:
+#
+#     cd app
+#     npm install
+#     npm ci
+#     npm run build
+#
+# Then commit:
+#
+#     package.json
+#     package-lock.json
+#
+# Never manually construct package-lock.json.
+#
+# npm should generate and maintain the lockfile.
+#
+# ============================================================
+
