@@ -19,3 +19,9 @@
 - [ ] Generate SHA-256
 - [ ] Sign installer
 - [ ] Publish third-party notices
+
+
+## Runtime packaging notes
+
+- The Windows installer bundles `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` under the Tauri application resources directory. The desktop app resolves these bundled tools from the packaged resource directory, so end users do not need to install them separately.
+- The CRX release is a CRX3 package signed with RSA/SHA-256 using Chromium-compatible PKCS#1 v1.5 signing. The packer self-verifies the signature before creating the release artifact.

@@ -18,3 +18,6 @@
 ## 0.1.0
 
 - Initial Tauri + React + Rust foundation
+
+- Fixed packaged Windows runtime tool discovery for yt-dlp/FFmpeg resources.
+- Fixed CRX3 RSA/SHA-256 signing compatibility and added self-verification before release.

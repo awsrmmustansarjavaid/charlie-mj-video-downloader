@@ -53,12 +53,24 @@ const signedMessage = Buffer.concat([
   archive,
 ]);
 
-// Chromium's CRX3 RSA proof uses RSA-PSS with SHA-256 and a 32-byte salt.
+// Chromium's current CRX3 verifier accepts the RSA/SHA-256 proof using PKCS#1 v1.5 padding.
 const signature = crypto.sign('sha256', signedMessage, {
   key: privateKey,
-  padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-  saltLength: 32,
+  padding: crypto.constants.RSA_PKCS1_PADDING,
 });
+
+// Verify the signature before writing the package. This catches malformed
+// CRX files during CI instead of producing an artifact Chrome will reject.
+const verified = crypto.verify('sha256', signedMessage, {
+  key: publicKey,
+  format: 'der',
+  type: 'spki',
+  padding: crypto.constants.RSA_PKCS1_PADDING,
+}, signature);
+
+if (!verified) {
+  throw new Error('CRX3 self-verification failed: the RSA/SHA-256 signature is invalid.');
+}
 
 // AsymmetricKeyProof { bytes public_key = 1; bytes signature = 2; }
 const proof = Buffer.concat([
@@ -81,6 +93,7 @@ prefix.writeUInt32LE(3, 4);
 prefix.writeUInt32LE(header.length, 8);
 
 fs.writeFileSync(outputPath, Buffer.concat([prefix, header, archive]));
+console.log('CRX3 signature verification: OK');
 console.log(`Created CRX3: ${outputPath}`);
 console.log(`CRX ID: ${crxId.toString('hex')}`);
 console.log(`CRX size: ${fs.statSync(outputPath).size} bytes`);

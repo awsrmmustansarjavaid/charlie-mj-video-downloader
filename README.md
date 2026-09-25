@@ -198,3 +198,9 @@ The extension uses Manifest V3 and requests broad host access because media capt
 ### Runtime and legal notes
 
 The application only downloads media that the user is authorized to access and should be used in accordance with the relevant site's terms and copyright law. It does not implement DRM circumvention or security-control bypasses.
+
+
+## Runtime packaging notes
+
+- The Windows installer bundles `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` under the Tauri application resources directory. The desktop app resolves these bundled tools from the packaged resource directory, so end users do not need to install them separately.
+- The CRX release is a CRX3 package signed with RSA/SHA-256 using Chromium-compatible PKCS#1 v1.5 signing. The packer self-verifies the signature before creating the release artifact.

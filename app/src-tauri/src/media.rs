@@ -52,45 +52,31 @@ use tokio::process::Command;
 // This allows the application to work with both development
 // and packaged/release installations.
 fn tool(name: &str) -> PathBuf {
-
-    // --------------------------------------------------------
-    // Custom Tools Directory
-    // --------------------------------------------------------
-    // If CHARLIE_MJ_TOOLS_DIR is configured, use that directory.
-    //
-    // Example:
-    //
-    // CHARLIE_MJ_TOOLS_DIR=C:\CharlieMJ\tools
-    //
-    // Result:
-    //
-    // C:\CharlieMJ\tools\yt-dlp.exe
+    // The packaged Tauri app sets CHARLIE_MJ_TOOLS_DIR during startup.
+    // Keep this fallback resolver defensive so an installed build can
+    // still find bundled tools if the environment variable is unavailable.
     if let Ok(dir) = std::env::var("CHARLIE_MJ_TOOLS_DIR") {
-        return PathBuf::from(dir).join(name);
+        let candidate = PathBuf::from(dir).join(name);
+        if candidate.exists() {
+            return candidate;
+        }
     }
 
-    // --------------------------------------------------------
-    // Application Executable Directory
-    // --------------------------------------------------------
-    // Determine the directory where the current application
-    // executable is located.
     let exe_dir = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|x| x.to_path_buf()))
+        .and_then(|p| p.parent().map(PathBuf::from))
         .unwrap_or_default();
 
-    // Use the "tools" directory located beside the application.
-    //
-    // Example:
-    //
-    // Charlie MJ Video Downloader.exe
-    // tools/
-    //   yt-dlp.exe
-    //
-    // becomes:
-    //
-    // <application-directory>/tools/yt-dlp.exe
-    exe_dir.join("tools").join(name)
+    let candidates = [
+        exe_dir.join("resources").join("tools").join(name),
+        exe_dir.join("tools").join(name),
+        exe_dir.join("..\\resources\\tools").join(name),
+    ];
+
+    candidates
+        .into_iter()
+        .find(|p| p.exists())
+        .unwrap_or_else(|| exe_dir.join("resources").join("tools").join(name))
 }
 
 

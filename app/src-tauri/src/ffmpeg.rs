@@ -69,38 +69,28 @@ use tokio::process::Command;
 // ============================================================
 
 fn tool(name: &str) -> PathBuf {
-
-    // --------------------------------------------------------
-    // Check Custom Tools Directory
-    // --------------------------------------------------------
-    // Allow the user/application to specify a custom tools
-    // directory through an environment variable.
     if let Ok(dir) = std::env::var("CHARLIE_MJ_TOOLS_DIR") {
-
-        // Append the requested executable name.
-        return PathBuf::from(dir).join(name);
+        let candidate = PathBuf::from(dir).join(name);
+        if candidate.exists() {
+            return candidate;
+        }
     }
 
-
-    // --------------------------------------------------------
-    // Use Application Directory
-    // --------------------------------------------------------
-    // current_exe() returns the path of the running application.
-    //
-    // parent() gets the directory containing the executable.
-    //
-    // If either operation fails, use an empty PathBuf as the
-    // fallback.
-    std::env::current_exe()
+    let exe_dir = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|x| x.to_path_buf()))
-        .unwrap_or_default()
+        .and_then(|p| p.parent().map(PathBuf::from))
+        .unwrap_or_default();
 
-        // Look for the tools directory beside the application.
-        .join("tools")
+    let candidates = [
+        exe_dir.join("resources").join("tools").join(name),
+        exe_dir.join("tools").join(name),
+        exe_dir.join("..\\resources\\tools").join(name),
+    ];
 
-        // Add the requested executable name.
-        .join(name)
+    candidates
+        .into_iter()
+        .find(|p| p.exists())
+        .unwrap_or_else(|| exe_dir.join("resources").join("tools").join(name))
 }
 
 

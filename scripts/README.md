@@ -100,3 +100,9 @@ Never commit a private signing key or a base64-encoded private key to the reposi
 ## CRX3 packaging without Chrome or OpenSSL
 
 The release workflow packages the extension as CRX3 using `scripts/package-crx3.js` and Node.js crypto. This avoids depending on Chrome's `--pack-extension` command-line behavior and requires no OpenSSL installation. The same PEM signing key is used to keep the extension identity stable when `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` is configured.
+
+
+## Runtime packaging notes
+
+- The Windows installer bundles `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` under the Tauri application resources directory. The desktop app resolves these bundled tools from the packaged resource directory, so end users do not need to install them separately.
+- The CRX release is a CRX3 package signed with RSA/SHA-256 using Chromium-compatible PKCS#1 v1.5 signing. The packer self-verifies the signature before creating the release artifact.
