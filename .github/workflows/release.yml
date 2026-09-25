@@ -116,18 +116,26 @@ jobs:
           $manifest.version = $env:VERSION
           $manifest | ConvertTo-Json -Depth 20 | Set-Content $path -Encoding UTF8
 
-      - name: Restore CRX signing key
+      - name: Restore CRX signing key (no OpenSSL)
         shell: pwsh
         env:
           CRX_PRIVATE_KEY_B64: ${{ secrets.CHARLIE_MJ_CRX_PRIVATE_KEY_B64 }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:CRX_PRIVATE_KEY_B64)) {
-            throw "Missing CHARLIE_MJ_CRX_PRIVATE_KEY_B64. Create one stable CRX signing key and add it as a GitHub Actions secret."
+            throw "Missing CHARLIE_MJ_CRX_PRIVATE_KEY_B64. Generate the key locally with scripts\generate-crx-key.ps1 and store its base64 contents as the GitHub Actions secret. OpenSSL is not required."
           }
-          [IO.File]::WriteAllBytes(
-            "$env:RUNNER_TEMP\charlie-mj-extension.pem",
-            [Convert]::FromBase64String($env:CRX_PRIVATE_KEY_B64)
-          )
+          try {
+            $bytes = [Convert]::FromBase64String($env:CRX_PRIVATE_KEY_B64)
+          } catch {
+            throw "CHARLIE_MJ_CRX_PRIVATE_KEY_B64 is not valid base64."
+          }
+          $keyPath = "$env:RUNNER_TEMP\charlie-mj-extension.pem"
+          [IO.File]::WriteAllBytes($keyPath, $bytes)
+          if ((Get-Item $keyPath).Length -lt 100) { throw "CRX signing key is unexpectedly small." }
+          $firstLine = (Get-Content $keyPath -TotalCount 1).Trim()
+          if ($firstLine -notmatch '^-----BEGIN (RSA )?PRIVATE KEY-----$') {
+            throw "CRX signing key does not look like a PEM private key."
+          }
 
       - name: Calculate stable Chrome extension ID
         id: extension

@@ -102,3 +102,11 @@ app/src-tauri/gen/
 Thumbs.db
 app/src-tauri/resources/tools/*.exe
 app/src-tauri/resources/native-host/*.exe
+# ------------------------------------------------------------
+# Chrome extension signing keys / packages
+# ------------------------------------------------------------
+# Never commit the private key used to sign the CRX extension.
+charlie-mj-extension.pem
+*.pem
+release/*.crx
+release/*.zip
