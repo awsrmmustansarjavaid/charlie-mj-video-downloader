@@ -12,7 +12,7 @@ const spkiDer = publicKey.export({ type: "spki", format: "der" });
 const digest = crypto.createHash("sha256").update(spkiDer).digest();
 
 let id = "";
-for (const byte of digest) {
+for (const byte of digest.subarray(0, 16)) {
   id += String.fromCharCode("a".charCodeAt(0) + ((byte >> 4) & 0x0f));
   id += String.fromCharCode("a".charCodeAt(0) + (byte & 0x0f));
 }
