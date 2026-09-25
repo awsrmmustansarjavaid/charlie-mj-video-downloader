@@ -96,3 +96,7 @@ The release workflow no longer fails when `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` is mi
 If you want the Chrome extension ID to stay identical across every release, configure the repository secret `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` with the same private key every time. Without that secret, the workflow intentionally uses a new temporary key and therefore the generated CRX has a new extension identity.
 
 Never commit a private signing key or a base64-encoded private key to the repository.
+
+## CRX3 packaging without Chrome or OpenSSL
+
+The release workflow packages the extension as CRX3 using `scripts/package-crx3.js` and Node.js crypto. This avoids depending on Chrome's `--pack-extension` command-line behavior and requires no OpenSSL installation. The same PEM signing key is used to keep the extension identity stable when `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` is configured.

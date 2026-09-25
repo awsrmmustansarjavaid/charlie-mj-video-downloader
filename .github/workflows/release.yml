@@ -167,30 +167,30 @@ jobs:
           Copy-Item "$env:RUNNER_TEMP\native-host-dist\charlie-mj-native-host.exe" `
             "$env:HOST_RESOURCE_DIR\charlie-mj-native-host.exe"
 
-      - name: Build and pack Chrome extension
+      - name: Build and pack Chrome extension (CRX3, no Chrome/OpenSSL required)
         shell: pwsh
         run: |
-          $stage = "$env:RUNNER_TEMP\charlie-mj-extension"
-          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item "$env:EXT_DIR\*" $stage -Recurse -Force
-
-          $chromeCandidates = @(
-            "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
-            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
-            "${env:LOCALAPPDATA}\Google\Chrome\Application\chrome.exe"
-          )
-          $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-          if (-not $chrome) { throw "Google Chrome was not found on the runner." }
-
-          & $chrome --pack-extension="$stage" --pack-extension-key="$env:RUNNER_TEMP\charlie-mj-extension.pem"
-
-          $crx = Join-Path (Split-Path $stage -Parent) ((Split-Path $stage -Leaf) + ".crx")
-          if (-not (Test-Path $crx)) { throw "Chrome did not generate a CRX file." }
-
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          Copy-Item $crx "release\Charlie-MJ-Video-Downloader-Chrome-Extension.crx"
-          Compress-Archive -Path "$env:EXT_DIR\*" -DestinationPath "release\Charlie-MJ-Video-Downloader-Chrome-Extension.zip" -Force
+          $zip = "$env:RUNNER_TEMP\Charlie-MJ-Video-Downloader-Chrome-Extension.zip"
+          $crx = "$env:RUNNER_TEMP\Charlie-MJ-Video-Downloader-Chrome-Extension.crx"
+
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          if (Test-Path $crx) { Remove-Item $crx -Force }
+
+          Compress-Archive -Path "$env:EXT_DIR\*" -DestinationPath $zip -Force
+          if (-not (Test-Path $zip)) { throw "Extension ZIP was not created." }
+
+          node scripts/package-crx3.js `
+            "$env:RUNNER_TEMP\charlie-mj-extension.pem" `
+            $zip `
+            $crx
+
+          if (-not (Test-Path $crx)) { throw "CRX3 packer did not create the CRX file." }
+
+          Copy-Item $crx "release\Charlie-MJ-Video-Downloader-Chrome-Extension.crx" -Force
+          Copy-Item $zip "release\Charlie-MJ-Video-Downloader-Chrome-Extension.zip" -Force
+
+          Write-Host "CRX3 package created without invoking Chrome."
 
       - name: Build Windows application
         working-directory: app
