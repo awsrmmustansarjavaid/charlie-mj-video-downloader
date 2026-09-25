@@ -106,7 +106,7 @@ pub async fn start_download(
     // Start the actual media download in a background task.
     // The previous implementation discarded the result, which left
     // every job permanently at `queued / 0% / unknown`.
-    let job_id = id.clone();
+    let background_job_id = id.clone();
     let download_url = url.clone();
     tokio::spawn(async move {
         let state = app.state::<AppState>();
@@ -122,7 +122,7 @@ pub async fn start_download(
             Ok(output_path) => {
                 set_job_status(
                     state.inner(),
-                    &job_id,
+                    &background_job_id,
                     "completed",
                     100.0,
                     Some(output_path),
@@ -132,7 +132,7 @@ pub async fn start_download(
             Err(error) => {
                 set_job_status(
                     state.inner(),
-                    &job_id,
+                    &background_job_id,
                     "failed",
                     0.0,
                     None,
@@ -378,7 +378,7 @@ pub async fn start_captured_download(
     });
 
     // Return the job ID to the frontend immediately.
-    Ok(job_id)
+    Ok(id)
 }
 
 
