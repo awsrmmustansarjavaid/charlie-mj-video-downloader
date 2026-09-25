@@ -377,8 +377,8 @@ pub async fn start_captured_download(
         }
     });
 
-    // Return the job ID to the frontend immediately.
-    Ok(id)
+    // Return the original job ID to the frontend immediately.
+    Ok(job_id)
 }
 
 
