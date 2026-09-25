@@ -76,6 +76,98 @@ use tauri::Manager;
 // `cfg_attr` allows Tauri to use the appropriate mobile entry
 // point when the application is compiled for a mobile target.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+
+#[cfg(windows)]
+fn configure_runtime_environment(app: &tauri::AppHandle) -> Result<(), String> {
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Unable to resolve application resources: {e}"))?;
+
+    let tools_dir = resource_dir.join("tools");
+    if !tools_dir.join("yt-dlp.exe").exists() {
+        return Err(format!(
+            "Charlie MJ runtime is incomplete: yt-dlp.exe was not found at {}",
+            tools_dir.display()
+        ));
+    }
+    if !tools_dir.join("ffmpeg.exe").exists() {
+        return Err(format!(
+            "Charlie MJ runtime is incomplete: ffmpeg.exe was not found at {}",
+            tools_dir.display()
+        ));
+    }
+    if !tools_dir.join("ffprobe.exe").exists() {
+        return Err(format!(
+            "Charlie MJ runtime is incomplete: ffprobe.exe was not found at {}",
+            tools_dir.display()
+        ));
+    }
+
+    std::env::set_var("CHARLIE_MJ_TOOLS_DIR", &tools_dir);
+
+    // Register the Native Messaging host per-user. This does not
+    // require modifying Chrome's policy or bypassing security controls.
+    let extension_id = std::fs::read_to_string(
+        resource_dir.join("native-host").join("extension-id.txt")
+    ).map_err(|e| format!("Unable to read extension ID: {e}"))?
+     .trim()
+     .to_string();
+
+    let host_source = resource_dir
+        .join("native-host")
+        .join("charlie-mj-native-host.exe");
+
+    if !host_source.exists() {
+        return Err(format!(
+            "Native Messaging host was not found at {}",
+            host_source.display()
+        ));
+    }
+
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Unable to resolve app data directory: {e}"))?;
+    let host_dir = app_data.join("native-host");
+    std::fs::create_dir_all(&host_dir)
+        .map_err(|e| format!("Unable to create native host directory: {e}"))?;
+
+    let host_path = host_dir.join("charlie-mj-native-host.exe");
+    std::fs::copy(&host_source, &host_path)
+        .map_err(|e| format!("Unable to install native host: {e}"))?;
+
+    let manifest_path = host_dir.join("com.charliemj.videodownloader.json");
+    let manifest = serde_json::json!({
+        "name": "com.charliemj.videodownloader",
+        "description": "Charlie MJ Video Downloader Native Messaging Host",
+        "path": host_path.to_string_lossy(),
+        "type": "stdio",
+        "allowed_origins": [format!("chrome-extension://{extension_id}/")]
+    });
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest)
+            .map_err(|e| format!("Unable to serialize native host manifest: {e}"))?
+    ).map_err(|e| format!("Unable to write native host manifest: {e}"))?;
+
+    // HKCU is sufficient for a per-user Chrome installation and avoids
+    // requiring an elevated process just to register Native Messaging.
+    let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
+    let (key, _) = hkcu
+        .create_subkey(r"Software\Google\Chrome\NativeMessagingHosts\com.charliemj.videodownloader")
+        .map_err(|e| format!("Unable to register Chrome Native Messaging host: {e}"))?;
+    key.set_value("", &manifest_path.to_string_lossy().to_string())
+        .map_err(|e| format!("Unable to write Chrome Native Messaging registration: {e}"))?;
+
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn configure_runtime_environment(_app: &tauri::AppHandle) -> Result<(), String> {
+    Ok(())
+}
+
 pub fn run() {
 
     // --------------------------------------------------------
@@ -194,6 +286,14 @@ pub fn run() {
         // the application but before the application starts
         // serving normal user interactions.
         .setup(|app| {
+
+            // Resolve packaged runtime tools and register the browser bridge.
+            // Development builds can still use CHARLIE_MJ_TOOLS_DIR or the
+            // executable-adjacent tools directory.
+            #[cfg(windows)]
+            if let Err(error) = configure_runtime_environment(app.handle()) {
+                eprintln!("Charlie MJ startup check: {error}");
+            }
 
             // ------------------------------------------------
             // Configure Main Window

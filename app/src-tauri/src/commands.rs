@@ -203,16 +203,18 @@ pub async fn start_captured_download(
         .clone()
         .unwrap_or_else(|| "Charlie MJ Video".into());
 
-    // Get the application's current working directory.
-    //
-    // If the current directory cannot be determined, use "."
-    // as a fallback.
-    let base = std::env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."));
+    // Use the user's Downloads directory for completed browser-capture
+    // downloads instead of the process working directory. Installed
+    // Windows applications may start with an unrelated working directory.
+    let base = dirs::download_dir()
+        .or_else(dirs::data_local_dir)
+        .unwrap_or_else(|| PathBuf::from("."));
 
-    // Create a temporary directory for the separate video
-    // and audio stream files.
-    let temp = downloader::temp_pair_dir(&base, &job_id);
+    // Keep temporary stream pairs in an application cache directory.
+    let temp_base = dirs::cache_dir()
+        .map(|p| p.join("Charlie MJ Video Downloader").join("temp"))
+        .unwrap_or_else(|| base.join(".charlie-mj-temp"));
+    let temp = downloader::temp_pair_dir(&temp_base, &job_id);
 
 
     // --------------------------------------------------------

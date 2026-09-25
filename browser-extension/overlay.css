@@ -1,0 +1,52 @@
+#charlie-mj-download-overlay {
+  all: initial;
+  position: fixed;
+  z-index: 2147483647;
+  top: 18px;
+  right: 18px;
+  font-family: Arial, sans-serif;
+}
+#charlie-mj-download-overlay * { box-sizing: border-box; }
+#cmj-toggle, #cmj-send {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  background: #111827;
+  color: white;
+  font: 600 13px Arial, sans-serif;
+  box-shadow: 0 4px 18px rgba(0,0,0,.25);
+}
+#cmj-panel {
+  width: 340px;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: white;
+  color: #111827;
+  box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  font: 13px Arial, sans-serif;
+}
+#cmj-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#cmj-close {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+#cmj-status { margin-bottom: 8px; color: #4b5563; }
+#cmj-streams { max-height: 180px; overflow: auto; margin-bottom: 10px; }
+.cmj-stream {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+#cmj-send { width: 100%; }
+#cmj-send:disabled { opacity: .55; cursor: not-allowed; }

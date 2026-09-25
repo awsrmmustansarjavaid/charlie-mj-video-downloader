@@ -25,3 +25,17 @@ The extension is intentionally lightweight. It does not download the full media 
 6. Replace the placeholder extension ID in the native-host manifest.
 
 For production, request only the browser permissions required by the final implementation and follow Chrome/Edge extension policies.
+
+
+## Release package
+
+The GitHub release workflow produces both:
+
+- `Charlie-MJ-Video-Downloader-Chrome-Extension.crx`
+- `Charlie-MJ-Video-Downloader-Chrome-Extension.zip`
+
+The extension is Manifest V3. It adds a small floating Charlie MJ control to normal web pages and reports detected authorized media to the desktop application through Chrome Native Messaging.
+
+The desktop application performs the actual download and FFmpeg merge. The extension does not attempt DRM circumvention or security-control bypasses.
+
+For normal consumer distribution, publish the extension through the Chrome Web Store. The CRX is useful for controlled/developer installations and release testing.

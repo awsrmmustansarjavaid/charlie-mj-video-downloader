@@ -458,3 +458,9 @@ sha2 = "0.10"
 #
 # Useful for representing SHA-256 hashes in a readable format.
 hex = "0.4"
+
+# Windows registry access for per-user Chrome Native Messaging registration.
+[target."cfg(windows)".dependencies]
+winreg = "0.55"
+
+dirs = "6"

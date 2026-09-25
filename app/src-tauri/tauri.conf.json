@@ -26,13 +26,19 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "windows": {
       "nsis": {
         "installMode": "perMachine",
         "displayLanguageSelector": true,
         "startMenuFolder": "Charlie MJ Video Downloader"
       }
-    }
+    },
+    "resources": [
+      "resources/tools/*",
+      "resources/native-host/*"
+    ]
   }
 }

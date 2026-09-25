@@ -439,6 +439,9 @@ function emitCapture(tabId, stream) {
     // application knows where the media was detected.
     chrome.tabs.get(tabId).then(tab => {
 
+      current.pageUrl = tab?.url;
+      current.title = tab?.title;
+
       // ------------------------------------------------------
       // Send Media Detection Message
       // ------------------------------------------------------
@@ -505,6 +508,54 @@ function sendNative(message) {
   );
 }
 
+
+
+// ============================================================
+// Content-script overlay bridge
+// ============================================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type !== "get_capture" && message?.type !== "send_capture") {
+    return false;
+  }
+
+  const tabId = sender.tab?.id;
+  if (typeof tabId !== "number") {
+    sendResponse({ ok: false, error: "No browser tab is available." });
+    return false;
+  }
+
+  const current = recent.get(tabId);
+  const streams = current ? [...current.streams.values()] : [];
+
+  if (message.type === "get_capture") {
+    sendResponse({
+      source: current?.source || "browser",
+      tabId,
+      pageUrl: current?.pageUrl || sender.tab?.url,
+      title: current?.title || sender.tab?.title,
+      streams
+    });
+    return false;
+  }
+
+  if (!streams.length) {
+    sendResponse({ ok: false, error: "No supported media has been detected yet." });
+    return false;
+  }
+
+  sendNative({
+    type: "media_detected",
+    source: streams.some(x => x.url.includes("googlevideo.com"))
+      ? "google_drive"
+      : "browser",
+    pageUrl: sender.tab?.url,
+    title: sender.tab?.title,
+    streams
+  });
+
+  sendResponse({ ok: true });
+  return false;
+});
 
 // ============================================================
 // Extension Installation Handler

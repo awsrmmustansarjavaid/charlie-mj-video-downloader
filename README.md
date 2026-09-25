@@ -158,3 +158,43 @@ npm run tauri build
 ## License
 
 The application source in this repository is MIT licensed. Third-party tools and dependencies retain their own licenses. See `THIRD-PARTY-NOTICES.md`.
+
+
+## Release artifacts
+
+The Windows release workflow (`.github/workflows/release.yml`) produces:
+
+- `Charlie-MJ-Video-Downloader-Setup-x64.exe`
+- `Charlie-MJ-Video-Downloader-Chrome-Extension.crx`
+- `Charlie-MJ-Video-Downloader-Chrome-Extension.zip`
+- `SHA256SUMS.txt`
+
+The workflow downloads pinned-at-build-time runtime tools into the Tauri resource bundle:
+
+- `yt-dlp.exe`
+- `ffmpeg.exe`
+- `ffprobe.exe`
+
+The desktop application resolves these from Tauri's packaged resource directory instead of assuming that `yt-dlp` is installed globally.
+
+### Stable CRX signing
+
+Create one RSA private key for the Chrome extension and keep it outside Git. Base64-encode the PEM and add it to GitHub Actions as:
+
+`CHARLIE_MJ_CRX_PRIVATE_KEY_B64`
+
+The release workflow derives the stable extension ID from that key and places it into the Native Messaging configuration.
+
+Do not commit the private key.
+
+### Native Messaging
+
+The Windows application registers the Charlie MJ Native Messaging host for the current Windows user at first launch. It does not modify Chrome policies or attempt to bypass browser security controls.
+
+### Browser permissions
+
+The extension uses Manifest V3 and requests broad host access because media capture is performed from user-authorized pages. The extension should be published/reviewed through the Chrome Web Store for normal distribution. The CRX is also provided as a release artifact for controlled/developer installations.
+
+### Runtime and legal notes
+
+The application only downloads media that the user is authorized to access and should be used in accordance with the relevant site's terms and copyright law. It does not implement DRM circumvention or security-control bypasses.
