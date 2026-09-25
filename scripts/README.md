@@ -91,14 +91,8 @@ If Chrome is unavailable, the extension ZIP can still be loaded through Chrome's
 
 ## GitHub Actions signing key
 
-For release builds, add the base64-encoded contents of your stable `charlie-mj-extension.pem` as the repository secret:
+The release workflow no longer fails when `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` is missing. It automatically generates a temporary RSA signing key with the Node.js crypto implementation already used by the repository, so **OpenSSL is never required and no manual command is required to make the GitHub release run**.
 
-`CHARLIE_MJ_CRX_PRIVATE_KEY_B64`
+If you want the Chrome extension ID to stay identical across every release, configure the repository secret `CHARLIE_MJ_CRX_PRIVATE_KEY_B64` with the same private key every time. Without that secret, the workflow intentionally uses a new temporary key and therefore the generated CRX has a new extension identity.
 
-Example PowerShell command:
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes('.\charlie-mj-extension.pem'))
-```
-
-Never put the resulting value in a tracked file or commit the PEM itself.
+Never commit a private signing key or a base64-encoded private key to the repository.

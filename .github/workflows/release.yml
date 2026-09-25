@@ -116,21 +116,27 @@ jobs:
           $manifest.version = $env:VERSION
           $manifest | ConvertTo-Json -Depth 20 | Set-Content $path -Encoding UTF8
 
-      - name: Restore CRX signing key (no OpenSSL)
+      - name: Restore or generate CRX signing key (no OpenSSL)
         shell: pwsh
         env:
           CRX_PRIVATE_KEY_B64: ${{ secrets.CHARLIE_MJ_CRX_PRIVATE_KEY_B64 }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:CRX_PRIVATE_KEY_B64)) {
-            throw "Missing CHARLIE_MJ_CRX_PRIVATE_KEY_B64. Generate the key locally with scripts\generate-crx-key.ps1 and store its base64 contents as the GitHub Actions secret. OpenSSL is not required."
-          }
-          try {
-            $bytes = [Convert]::FromBase64String($env:CRX_PRIVATE_KEY_B64)
-          } catch {
-            throw "CHARLIE_MJ_CRX_PRIVATE_KEY_B64 is not valid base64."
-          }
           $keyPath = "$env:RUNNER_TEMP\charlie-mj-extension.pem"
-          [IO.File]::WriteAllBytes($keyPath, $bytes)
+
+          if ([string]::IsNullOrWhiteSpace($env:CRX_PRIVATE_KEY_B64)) {
+            Write-Warning "CHARLIE_MJ_CRX_PRIVATE_KEY_B64 is not configured. Generating a temporary CRX signing key with Node.js so the release does not fail."
+            Write-Warning "For a stable Chrome extension ID across releases, configure CHARLIE_MJ_CRX_PRIVATE_KEY_B64 once. OpenSSL is not required."
+            node scripts/generate-crx-key.js $keyPath
+          } else {
+            try {
+              $bytes = [Convert]::FromBase64String($env:CRX_PRIVATE_KEY_B64)
+            } catch {
+              throw "CHARLIE_MJ_CRX_PRIVATE_KEY_B64 is not valid base64."
+            }
+            [IO.File]::WriteAllBytes($keyPath, $bytes)
+          }
+
+          if (-not (Test-Path $keyPath)) { throw "CRX signing key was not created." }
           if ((Get-Item $keyPath).Length -lt 100) { throw "CRX signing key is unexpectedly small." }
           $firstLine = (Get-Content $keyPath -TotalCount 1).Trim()
           if ($firstLine -notmatch '^-----BEGIN (RSA )?PRIVATE KEY-----$') {
