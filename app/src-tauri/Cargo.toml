@@ -1,105 +1,154 @@
 # ============================================================
 # Charlie MJ Video Downloader - Rust/Tauri Package
 # ============================================================
-# This file defines the Rust package configuration for the
-# Charlie MJ Video Downloader desktop application.
+# This Cargo manifest defines the Rust package used by the
+# Tauri desktop application.
 #
 # Cargo uses this file to:
-# - Identify the application
-# - Configure the Rust library
-# - Define build dependencies
-# - Define application dependencies
-# - Configure Tauri
-# - Configure required Rust features
+# - Identify the Rust package
+# - Define the library crate
+# - Configure build-time dependencies
+# - Configure runtime dependencies
+# - Provide dependency features required by the application
 #
-# Main architecture:
+# Application architecture:
 #
 # React + TypeScript
 #        ↓
 #      Tauri
 #        ↓
-#   Rust Backend
+#   Rust Application
 #        ↓
-# ┌──────┴─────────────────────┐
-# │                            │
-# SQLite                   Downloader
-# Database                 Processes
-# │                            │
-# └──────────────┬─────────────┘
-#                ↓
-#          Windows Desktop App
-# ============================================================
-
-
-# ============================================================
-# Package Information
-# ============================================================
-
-# Unique package/crate name.
+# ┌──────┼──────────────────────────┐
+# │      │                          │
+# SQLite Downloader             FFmpeg
+# │      │                          │
+# └──────┴──────────────┬───────────┘
+#                       ↓
+#              Windows Desktop App
 #
-# This name is used by Cargo when building the Rust project.
+# IMPORTANT:
+# This is a normal Cargo package manifest.
+# It is NOT a virtual workspace manifest.
+#
+# Therefore, this file must contain [package].
+# A [workspace] section is intentionally not defined here.
+# ============================================================
+
+
+# ============================================================
+# Package Configuration
+# ============================================================
+# The [package] section identifies this Cargo package.
+#
+# This section is required for a normal Rust package and tells
+# Cargo that this Cargo.toml represents an actual package/crate
+# rather than a virtual workspace manifest.
+
+[package]
+
+
+# ------------------------------------------------------------
+# Package Name
+# ------------------------------------------------------------
+# Unique name of the Rust package.
+#
+# Cargo uses this name when compiling and identifying the
+# application package.
 name = "charlie-mj-video-downloader"
 
 
-# Current application version.
+# ------------------------------------------------------------
+# Application Version
+# ------------------------------------------------------------
+# Current application/package version.
 #
-# This version can also be used when creating application
-# releases and installers.
+# This version can also be used when preparing releases and
+# Windows installers.
 version = "0.2.0"
 
 
-# Short description of the application.
+# ------------------------------------------------------------
+# Package Description
+# ------------------------------------------------------------
+# Short description of the Charlie MJ desktop application.
 description = "Charlie MJ Video Downloader"
 
 
-# Package authors.
+# ------------------------------------------------------------
+# Package Authors
+# ------------------------------------------------------------
+# Maintainer/contributor information for the Rust package.
 authors = ["Charlie MJ contributors"]
 
 
-# Rust edition used by this project.
+# ------------------------------------------------------------
+# Rust Edition
+# ------------------------------------------------------------
+# Rust 2021 edition.
 #
-# Edition 2021 provides the Rust language features and
-# conventions used by this application.
+# The edition controls Rust language conventions and compiler
+# behavior used by the project.
 edition = "2021"
 
 
 # ============================================================
 # Library Configuration
 # ============================================================
-# Defines the Rust library produced by this package.
+# The Tauri application uses a library crate for the main
+# application logic.
 #
-# Tauri applications commonly use a library crate so that
-# the application logic can be organized separately from
-# the executable entry point.
+# The executable entry point is kept in:
+#
+# app/src-tauri/src/main.rs
+#
+# The main application setup and Tauri backend are provided
+# through:
+#
+# app/src-tauri/src/lib.rs
 
 [lib]
 
-# Name of the generated Rust library.
+
+# ------------------------------------------------------------
+# Library Name
+# ------------------------------------------------------------
+# Name of the Rust library crate.
+#
+# The underscore-based name is intentional because Rust crate
+# names cannot use the same hyphenated form used by the package
+# name in source-code references.
 name = "charlie_mj_video_downloader_lib"
 
 
 # ------------------------------------------------------------
 # Library Output Types
 # ------------------------------------------------------------
+# Defines the library formats Cargo should produce.
+#
 # staticlib:
-#   Builds a static library.
+#   Produces a static library.
 #
 # cdylib:
-#   Builds a C-compatible dynamic library.
+#   Produces a C-compatible dynamic library.
 #
 # rlib:
-#   Standard Rust library format used by Rust crates.
+#   Produces the standard Rust library format used by Rust
+#   crates.
 #
-# These output types provide the formats required by the
-# Tauri build system and Rust tooling.
+# These formats are used by the Tauri build configuration and
+# Rust compilation process.
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 
 # ============================================================
 # Build Dependencies
 # ============================================================
-# Dependencies in this section are used during the build
-# process rather than by the application at runtime.
+# Dependencies in this section are used while Cargo builds
+# the application.
+#
+# They are separate from normal runtime dependencies because
+# they are required by the build process itself.
 
 [build-dependencies]
 
@@ -107,24 +156,25 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # ------------------------------------------------------------
 # Tauri Build Support
 # ------------------------------------------------------------
-# Provides Tauri's build-time functionality.
+# Provides Tauri-specific build-time functionality.
 #
-# This works together with:
+# This works with:
+#
 # app/src-tauri/build.rs
 #
 # The build script calls:
 #
 # tauri_build::build()
 #
-# to perform Tauri-specific build preparation.
+# to perform Tauri build preparation and configuration.
 tauri-build = { version = "2.0.0" }
 
 
 # ============================================================
-# Application Dependencies
+# Runtime / Application Dependencies
 # ============================================================
-# These libraries are compiled into the Charlie MJ application
-# and provide the functionality required by the Rust backend.
+# Libraries in this section are compiled into the application
+# and provide functionality required by the Rust/Tauri backend.
 
 [dependencies]
 
@@ -132,54 +182,55 @@ tauri-build = { version = "2.0.0" }
 # ------------------------------------------------------------
 # Tauri Framework
 # ------------------------------------------------------------
-# Main framework used to build the Windows desktop application
-# with a web frontend and Rust backend.
+# Main framework connecting the web frontend with the Rust
+# desktop backend.
 #
 # tray-icon:
-#   Enables system tray functionality.
+#   Enables system-tray functionality.
 #
-# This allows Charlie MJ to provide desktop features such as
-# a system tray icon/menu.
+# This allows the application to support desktop features such
+# as a system-tray icon and tray menu.
 tauri = { version = "2.0.0", features = ["tray-icon"] }
 
 
 # ------------------------------------------------------------
 # Tauri Dialog Plugin
 # ------------------------------------------------------------
-# Provides native desktop dialogs.
+# Provides native desktop dialog functionality.
 #
-# Can be used for things such as:
+# Can be used for:
 # - File selection
 # - Folder selection
 # - Confirmation dialogs
-# - Native message dialogs
+# - Native application dialogs
 tauri-plugin-dialog = "2.0.0"
 
 
 # ------------------------------------------------------------
 # Tauri File System Plugin
 # ------------------------------------------------------------
-# Provides controlled filesystem access from the Tauri
+# Provides controlled filesystem functionality for the Tauri
 # application.
 #
 # Useful for:
 # - Reading files
 # - Writing files
-# - Managing download locations
-# - Working with application data
+# - Selecting download locations
+# - Managing application files
+# - Working with local application data
 tauri-plugin-fs = "2.0.0"
 
 
 # ------------------------------------------------------------
 # Tauri Notification Plugin
 # ------------------------------------------------------------
-# Provides desktop notifications.
+# Provides desktop notification functionality.
 #
-# Charlie MJ can use this for events such as:
+# The application can use notifications for events such as:
 # - Download started
 # - Download completed
 # - Download failed
-# - Other application notifications
+# - Other application events
 tauri-plugin-notification = "2.0.0"
 
 
@@ -192,8 +243,8 @@ tauri-plugin-notification = "2.0.0"
 #   Enables automatic generation of Serialize and Deserialize
 #   implementations.
 #
-# Useful for converting Rust structures to/from JSON and
-# communicating with the React frontend.
+# Used by the application's data models when exchanging
+# structured data between Rust and the frontend.
 serde = { version = "1", features = ["derive"] }
 
 
@@ -202,45 +253,46 @@ serde = { version = "1", features = ["derive"] }
 # ------------------------------------------------------------
 # Provides JSON serialization and deserialization.
 #
-# Used when exchanging structured data between:
+# Used for communication and data processing between:
 # - React frontend
 # - Rust backend
-# - Native messaging host
-# - Downloader processes
+# - Chrome/native messaging components
+# - Browser media capture data
 serde_json = "1"
 
 
 # ------------------------------------------------------------
 # Tokio
 # ------------------------------------------------------------
-# Asynchronous runtime for Rust.
+# Asynchronous runtime used by the Rust backend.
 #
-# Used for handling asynchronous and concurrent operations
-# such as downloads, processes, networking, and application
+# The application uses Tokio for asynchronous operations such
+# as downloads, networking, external processes, and background
 # tasks.
 #
 # Enabled features:
 #
 # process:
-#   Start and manage external processes.
+#   Allows the application to start and manage external
+#   processes such as FFmpeg.
 #
 # sync:
-#   Synchronization primitives for asynchronous tasks.
+#   Provides synchronization primitives used by shared state.
 #
 # rt-multi-thread:
-#   Multi-threaded asynchronous runtime.
+#   Enables Tokio's multi-threaded runtime.
 #
 # macros:
-#   Provides Tokio macros such as #[tokio::main].
+#   Provides Tokio helper macros.
 #
 # time:
-#   Timers and delays.
+#   Provides asynchronous timers and delays.
 #
 # net:
-#   Asynchronous networking functionality.
+#   Provides asynchronous networking functionality.
 #
 # io-util:
-#   Asynchronous I/O utilities.
+#   Provides asynchronous I/O utilities.
 tokio = {
     version = "1",
     features = [
@@ -258,45 +310,49 @@ tokio = {
 # ------------------------------------------------------------
 # UUID
 # ------------------------------------------------------------
-# Generates and manages unique identifiers.
+# Generates unique identifiers for application objects.
 #
 # v4:
-#   Enables randomly generated UUIDs.
+#   Enables randomly generated UUID version 4 values.
 #
 # serde:
-#   Allows UUID values to be serialized/deserialized.
+#   Enables serialization and deserialization support.
 #
-# Useful for uniquely identifying downloads, jobs, or other
-# application records.
+# UUIDs can be used for:
+# - Download job IDs
+# - Browser capture IDs
+# - Stream IDs
+# - Other application records
 uuid = { version = "1", features = ["v4", "serde"] }
 
 
 # ------------------------------------------------------------
 # Rusqlite
 # ------------------------------------------------------------
-# Rust interface for SQLite databases.
+# Rust interface for SQLite.
 #
 # bundled:
-#   Builds and includes SQLite with the application instead
-#   of depending on a separately installed SQLite library.
+#   Compiles SQLite together with the application instead of
+#   requiring a separately installed SQLite library.
 #
-# Useful for storing local application data such as:
+# The application uses SQLite for local data such as:
 # - Download history
+# - Browser capture records
+# - Application settings
 # - Download metadata
-# - Application records
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 
 # ------------------------------------------------------------
 # URL
 # ------------------------------------------------------------
-# Provides URL parsing and manipulation functionality.
+# Provides URL parsing and manipulation.
 #
-# Useful for:
-# - Validating URLs
-# - Reading query parameters
+# Used for:
+# - HTTP/HTTPS URL validation
+# - Reading URL components
 # - Processing media URLs
-# - Handling download URLs
+# - Normalizing captured stream URLs
 url = "2"
 
 
@@ -306,44 +362,44 @@ url = "2"
 # Date and time library for Rust.
 #
 # serde:
-#   Allows date/time values to be serialized and
-#   deserialized.
+#   Enables serialization and deserialization support.
 #
-# Useful for storing:
-# - Download timestamps
-# - Created/updated times
-# - History dates
+# Used for timestamps such as:
+# - Download creation time
+# - Browser capture creation time
+# - Application history timestamps
 chrono = { version = "0.4", features = ["serde"] }
 
 
 # ------------------------------------------------------------
 # Thiserror
 # ------------------------------------------------------------
-# Provides convenient custom error types for Rust.
+# Provides utilities for creating structured custom error
+# types in Rust.
 #
-# It helps create readable and structured application errors
-# that can be returned from backend functions.
+# This is useful when backend modules need clear and
+# application-specific error handling.
 thiserror = "2"
 
 
 # ------------------------------------------------------------
 # Reqwest
 # ------------------------------------------------------------
-# HTTP client used for network requests and downloading data.
+# HTTP client used for network requests and direct media
+# stream downloads.
 #
 # default-features = false:
-#   Disables Reqwest's default feature set so only the required
-#   functionality is enabled.
+#   Disables Reqwest's default feature set so that only the
+#   required functionality is enabled.
 #
 # rustls-tls:
-#   Provides TLS/HTTPS support using Rustls.
+#   Enables HTTPS/TLS support using Rustls.
 #
 # stream:
 #   Enables streaming HTTP response bodies.
 #
-# Streaming is particularly useful for large video/audio
-# downloads because the entire file does not need to be loaded
-# into memory at once.
+# Streaming allows large video/audio responses to be processed
+# in chunks instead of loading the entire file into memory.
 reqwest = {
     version = "0.12",
     default-features = false,
@@ -360,21 +416,21 @@ reqwest = {
 # Provides utilities for working with Rust Futures and
 # asynchronous streams.
 #
-# Useful together with Tokio and Reqwest for processing
-# streaming download data.
+# Used together with Tokio and Reqwest when processing
+# streaming download responses.
 futures-util = "0.3"
 
 
 # ------------------------------------------------------------
-# SHA-256 Hashing
+# SHA-256
 # ------------------------------------------------------------
 # Provides SHA-2 cryptographic hashing algorithms.
 #
 # SHA-256 can be used for:
-# - File integrity checks
+# - File integrity verification
 # - Download verification
-# - Generating content hashes
-# - Comparing downloaded data
+# - Content hashing
+# - Comparing downloaded files
 sha2 = "0.10"
 
 
@@ -383,6 +439,6 @@ sha2 = "0.10"
 # ------------------------------------------------------------
 # Converts binary data into hexadecimal strings and back.
 #
-# Commonly useful when displaying or storing SHA-256 hashes,
-# since hash values are naturally represented as hexadecimal.
+# Useful for representing binary hash values, such as SHA-256,
+# as readable hexadecimal strings.
 hex = "0.4"
