@@ -309,6 +309,15 @@ export default function App() {
   // If no formatId is provided, the backend uses its default
   // best-quality selection.
   // ==========================================================
+  // Download a selected format. If the selected format is video-only,
+  // automatically pair it with the best available audio stream so the
+  // user receives one combined media file instead of separate files.
+  function downloadFormat(format: { id: string; acodec?: string | null }) {
+    const videoOnly = !format.acodec || format.acodec === "none";
+    return download(videoOnly ? `${format.id}+bestaudio` : format.id);
+  }
+
+
   async function download(formatId?: string) {
 
     // Show busy state.
@@ -574,8 +583,9 @@ export default function App() {
                 key={f.id}
                 className="format"
 
-                // Start a download using the selected format ID.
-                onClick={() => download(f.id)}
+                // Video-only formats are automatically paired with the
+                // best available audio stream and merged by FFmpeg.
+                onClick={() => downloadFormat(f)}
               >
 
                 {/* Resolution or format ID. */}

@@ -389,7 +389,17 @@ pub async fn download(
         //
         // The format ID normally comes from analyze().
         Some(id) => {
-            command.args(["-f", id]);
+            // Video-only format selections must be paired with the best
+            // available audio stream. The frontend marks these selections
+            // as `<video_id>+bestaudio`; yt-dlp then downloads both streams
+            // and FFmpeg (bundled with the application) merges them into one
+            // final MP4 file.
+            if id.contains("+bestaudio") {
+                command.arg("-f").arg(id);
+                command.args(["--merge-output-format", "mp4"]);
+            } else {
+                command.arg("-f").arg(id);
+            }
         }
 
         // ----------------------------------------------------

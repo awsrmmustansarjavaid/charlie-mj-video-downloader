@@ -52,3 +52,7 @@ This release fixes the two user-visible problems found during Windows testing:
 ### v5.1 build fix
 - Fixed Rust `E0382` compile error by cloning the download job ID before moving it into the background Tokio task.
 - The command now returns the original job ID while the background task owns its clone.
+
+## Automatic Video + Audio Merging
+
+Normal video-format selections are automatically paired with the best available audio stream and merged into a single MP4 using the bundled FFmpeg. Browser-captured video/audio streams are also muxed automatically, so VLC is not required for manual combining.
