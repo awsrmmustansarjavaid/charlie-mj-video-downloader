@@ -7,6 +7,14 @@ Charlie MJ Video Downloader is a Windows desktop download manager with two compl
 1. **Direct/Web Download** — analyze supported URLs through yt-dlp and download the selected format.
 2. **Browser Media Capture** — detect authorized media streams from Chrome/Edge, send stream metadata to the desktop application, download video/audio separately when necessary, and automatically mux them into one final file with FFmpeg.
 
+## 📥 Download Charlie MJ Video Downloader
+
+Download and install the latest Windows version:
+
+**[⬇️ Download Charlie MJ Video Downloader – Windows x64](./win%20installer/Charlie-MJ-Video-Downloader-Setup-x64.exe)**
+
+> **Platform:** Windows 10/11 · 64-bit
+
 ## Final feature set
 
 ### Video & audio
