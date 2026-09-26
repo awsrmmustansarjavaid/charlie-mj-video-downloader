@@ -1,5 +1,9 @@
 # Charlie MJ Video Downloader
 
+<p align="center">
+  <img src="./img/charlie_mj_video_downloader_story.jpg" alt="Charlie MJ Video Downloader" width="600">
+</p>
+
 > **Download. Convert. Manage.**
 
 Charlie MJ Video Downloader is a Windows desktop download manager with two complementary media paths:
