@@ -220,3 +220,45 @@ The application only downloads media that the user is authorized to access and s
 ## Automatic Video + Audio Merging
 
 Normal video-format selections are automatically paired with the best available audio stream and merged into a single MP4 using the bundled FFmpeg. Browser-captured video/audio streams are also muxed automatically, so VLC is not required for manual combining.
+
+## 📦 Latest Release — Charlie MJ Video Downloader v0.2.2
+
+**Latest version:** [v0.2.2](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/tag/v0.2.2)
+
+### ⬇️ Downloads
+
+* **[🪟 Windows Installer — Charlie-MJ-Video-Downloader-Setup-x64.exe](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/download/v0.2.2/Charlie-MJ-Video-Downloader-Setup-x64.exe)**
+
+  * Size: 82.2 MB
+  * SHA-256: `1af295e044bb6503e70aed78b5188f444aac8b65a5307c38866946c9267897cf`
+
+* **[🌐 Chrome Extension — CRX](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/download/v0.2.2/Charlie-MJ-Video-Downloader-Chrome-Extension.crx)**
+
+  * Size: 16.5 KB
+  * SHA-256: `0023926b6133b5d634858235965143af272935abaa906aae7a0a0211518b4c5a`
+
+* **[🌐 Chrome Extension — ZIP](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/download/v0.2.2/Charlie-MJ-Video-Downloader-Chrome-Extension.zip)**
+
+  * Size: 15.9 KB
+  * SHA-256: `c5cdf75bd023e3e60d982824c6f9fb1ff7cdb1459d54a7b794a93918278c3394`
+
+* **[🔐 SHA256SUMS.txt](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/download/v0.2.2/SHA256SUMS.txt)**
+
+### 📋 Source Code
+
+* **[📦 Source Code — ZIP](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/archive/refs/tags/v0.2.2.zip)**
+* **[📦 Source Code — TAR.GZ](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/archive/refs/tags/v0.2.2.tar.gz)**
+
+### 📝 Changelog
+
+**v0.2.1 → v0.2.2**
+
+[View Full Changelog](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/compare/v0.2.1...v0.2.2)
+
+---
+
+### 🔗 GitHub Release
+
+[**View Charlie MJ Video Downloader v0.2.2 Release →**](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/tag/v0.2.2)
+
+[**🚀 View Latest Release →**](https://github.com/awsrmmustansarjavaid/charlie-mj-video-downloader/releases/latest)
